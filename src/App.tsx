@@ -1,11 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { getWidth, getHeight, transposeEvent } from "./viewport";
+import { getHeight, getWidth } from "./viewport";
 import "./App.css";
+import Canvas from "./Canvas";
 
 export default function App() {
   const [isMobile, setIsMobile] = useState(window.navigator.maxTouchPoints > 0);
   const [width, setWidth] = useState(getWidth());
   const [height, setHeight] = useState(getHeight());
+
+  function resize() {
+    if (window.navigator.maxTouchPoints > 0) {
+      document.oncontextmenu = () => false;
+    }
+    setIsMobile(window.navigator.maxTouchPoints > 0);
+    setWidth(getWidth());
+    setHeight(getHeight());
+  }
+
+  function pointermove(e: MouseEvent) {
+    // var mouse = transposeEvent(e);
+    // console.log(mouse.clientX, mouse.clientY);
+  }
 
   useEffect(() => {
     window.addEventListener("resize", resize, false);
@@ -18,27 +33,12 @@ export default function App() {
     };
   }, []);
 
-  function pointermove(e: MouseEvent) {
-    // var mouse = transposeEvent(e);
-    // console.log(mouse.clientX, mouse.clientY);
-  }
-
-  function resize() {
-    if (window.navigator.maxTouchPoints > 0) {
-      document.oncontextmenu = () => false;
-    }
-    setIsMobile(window.navigator.maxTouchPoints > 0);
-    setWidth(getWidth());
-    setHeight(getHeight());
-  }
-
   return (
     <div
       style={{ width, height }}
       className={["App", isMobile ? "mobile" : ""].join(" ")}
     >
-      <h1>Hello CodeSandbox</h1>
-      <h2>Start editing to see some magic happen!</h2>
+      <Canvas />
     </div>
   );
 }
