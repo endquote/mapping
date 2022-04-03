@@ -1,29 +1,33 @@
 import React, { useEffect, useRef } from "react";
 import Two from "two.js";
+import { Rectangle } from "two.js/src/shapes/rectangle";
 
 export default function Canvas() {
   const domElement = useRef<HTMLDivElement>(null!);
 
+  const two: Two = new Two({ fullscreen: true, autostart: true });
+  let rect: Rectangle;
+
+  const setup = () => {
+    rect = two.makeRectangle(0, 0, 50, 50);
+  };
+
+  const update = () => {
+    rect.position.x = two.width / 2;
+    rect.position.y = two.height / 2;
+    rect.rotation += 0.01;
+  };
+
   useEffect(() => {
-    const node = domElement.current;
-
-    const two = new Two({
-      fullscreen: true,
-      autostart: true,
-    }).appendTo(domElement.current);
-
-    const rect = two.makeRectangle(two.width / 2, two.height / 2, 50, 50);
-
-    const update = () => {
-      rect.rotation += 0.01;
-    };
-
+    const el = domElement.current;
+    two.appendTo(el);
+    setup();
     two.bind("update", update);
 
     return () => {
       two.unbind("update");
       two.pause();
-      node.removeChild(two.renderer.domElement);
+      el.removeChild(two.renderer.domElement);
     };
   }, []);
 

@@ -1,3 +1,6 @@
+// from two.js sample
+// https://codesandbox.io/s/sharp-proskuriakova-h5weu
+
 export function getWidth() {
   if (window.navigator.maxTouchPoints > 0) {
     return Math.max(window.innerWidth, window.innerHeight);

@@ -1,26 +1,29 @@
 import React, { useEffect, useState } from "react";
-import { getHeight, getWidth } from "./viewport";
 import "./App.css";
 import Canvas from "./Canvas";
+import { getHeight, getWidth } from "./viewport";
+
+// from two.js sample
+// https://codesandbox.io/s/sharp-proskuriakova-h5weu
 
 export default function App() {
   const [isMobile, setIsMobile] = useState(window.navigator.maxTouchPoints > 0);
   const [width, setWidth] = useState(getWidth());
   const [height, setHeight] = useState(getHeight());
 
-  function resize() {
+  const resize = () => {
     if (window.navigator.maxTouchPoints > 0) {
       document.oncontextmenu = () => false;
     }
     setIsMobile(window.navigator.maxTouchPoints > 0);
     setWidth(getWidth());
     setHeight(getHeight());
-  }
+  };
 
-  function pointermove(e: MouseEvent) {
+  const pointermove = (_e: MouseEvent) => {
     // var mouse = transposeEvent(e);
     // console.log(mouse.clientX, mouse.clientY);
-  }
+  };
 
   useEffect(() => {
     window.addEventListener("resize", resize, false);
