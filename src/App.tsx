@@ -11,7 +11,7 @@ export default function App() {
   const [width, setWidth] = useState(getWidth());
   const [height, setHeight] = useState(getHeight());
 
-  const resize = () => {
+  const onResize = () => {
     if (window.navigator.maxTouchPoints > 0) {
       document.oncontextmenu = () => false;
     }
@@ -20,19 +20,20 @@ export default function App() {
     setHeight(getHeight());
   };
 
-  const pointermove = (_e: MouseEvent) => {
+  const onPointerMove = (e: MouseEvent) => {
     // var mouse = transposeEvent(e);
     // console.log(mouse.clientX, mouse.clientY);
   };
 
   useEffect(() => {
-    window.addEventListener("resize", resize, false);
-    window.addEventListener("orientationchange", resize, false);
-    window.addEventListener("pointermove", pointermove, false);
+    window.addEventListener("resize", onResize, false);
+    window.addEventListener("orientationchange", onResize, false);
+    window.addEventListener("pointermove", onPointerMove, false);
+
     return () => {
-      window.removeEventListener("resize", resize, false);
-      window.removeEventListener("orientationchange", resize, false);
-      window.removeEventListener("pointermove", pointermove, false);
+      window.removeEventListener("resize", onResize, false);
+      window.removeEventListener("orientationchange", onResize, false);
+      window.removeEventListener("pointermove", onPointerMove, false);
     };
   }, []);
 
