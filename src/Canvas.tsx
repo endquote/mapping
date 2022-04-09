@@ -1,87 +1,125 @@
 import React, { useEffect, useRef, useState } from "react";
 import Two from "two.js";
 import { Texture } from "two.js/src/effects/texture";
+import { Group } from "two.js/src/group";
 import { Rectangle } from "two.js/src/shapes/rectangle";
 import { Vector } from "two.js/src/vector";
+import { useKeyState } from "use-key-state";
 
-type Corner = "nw" | "ne" | "se" | "sw";
+type Corner = "NW" | "NE" | "SE" | "SW";
 
 export default function Canvas() {
   const domElement = useRef<HTMLDivElement>(null!);
-  const two: Two = new Two({ fullscreen: true, autostart: true });
-  const size: Vector = new Vector(1920, 1080);
-  const arrowKeys = ["ArrowUp", "ArrowRight", "ArrowDown", "ArrowLeft"];
+  const [two] = useState<Two>(new Two({ fullscreen: true, autostart: true }));
+  const [sceneSize] = useState<Vector>(new Vector(1920, 1080));
+  const [sceneRoot] = useState<Group>(new Group());
 
-  const [movingCorner, setMovingCorner] = useState<Corner | undefined>();
-  // I don't totally understand the need for a ref https://stackoverflow.com/a/55265764
-  const movingCornerRef = useRef(movingCorner);
+  // select a corner by pressing Q/W/S/A
 
-  const cornerKeyMap: Record<string, Corner> = {
-    KeyQ: "nw",
-    KeyW: "ne",
-    KeyA: "sw",
-    KeyS: "se",
-  };
+  const [selectedCorner, setSelectedCorner] = useState<Corner | undefined>();
 
-  const [corners, setCorners] = useState<Record<Corner, Vector>>({
-    nw: new Vector(-size.x / 2, -size.y / 2),
-    ne: new Vector(size.x / 2, -size.y / 2),
-    sw: new Vector(-size.x / 2, size.y / 2),
-    se: new Vector(size.x / 2, size.y / 2),
+  const { selectNW, selectNE, selectSE, selectSW } = useKeyState({
+    selectNW: "Q",
+    selectNE: "W",
+    selectSE: "S",
+    selectSW: "A",
   });
 
-  let bg: Rectangle;
+  useEffect(() => {
+    if (selectNW.down) {
+      setSelectedCorner(selectedCorner === "NW" ? undefined : "NW");
+    } else if (selectNE.down) {
+      setSelectedCorner(selectedCorner === "NE" ? undefined : "NE");
+    } else if (selectSE.down) {
+      setSelectedCorner(selectedCorner === "SE" ? undefined : "SE");
+    } else if (selectSW.down) {
+      setSelectedCorner(selectedCorner === "SW" ? undefined : "SW");
+    }
+  }, [selectNW, selectNE, selectSE, selectSW]);
+
+  // nudge the selected corner with arrow keys
+
+  const [pins, setPins] = useState<Record<Corner, Vector>>({
+    NW: new Vector(),
+    NE: new Vector(),
+    SE: new Vector(),
+    SW: new Vector(),
+  });
+
+  const { nudgeN, nudgeS, nudgeW, nudgeE } = useKeyState(
+    {
+      nudgeN: "up",
+      nudgeS: "down",
+      nudgeW: "left",
+      nudgeE: "right",
+    },
+    {
+      ignoreRepeatEvents: false,
+      captureEvents: true,
+    }
+  );
+
+  useEffect(() => {
+    if (!selectedCorner) {
+      return;
+    }
+
+    const pin = pins[selectedCorner];
+    let changed = false;
+
+    if (nudgeN.pressed) {
+      pin.y -= 1;
+      changed = true;
+    }
+
+    if (nudgeE.pressed) {
+      pin.x += 1;
+      changed = true;
+    }
+
+    if (nudgeS.pressed) {
+      pin.y += 1;
+      changed = true;
+    }
+
+    if (nudgeW.pressed) {
+      pin.x -= 1;
+      changed = true;
+    }
+
+    if (changed) {
+      setPins({ ...pins });
+    }
+  }, [nudgeN, nudgeS, nudgeW, nudgeE]);
+
+  useEffect(() => {
+    console.log(pins);
+  }, [pins]);
 
   const setup = () => {
-    bg = two.makeRectangle(size.x / 2, size.y / 2, size.x, size.y);
-    // TODO: Maybe file an issue on the fact that rect.fill taking a texture is not documented or typed
+    two.add(sceneRoot);
+
+    const bg = new Rectangle(0, 0, sceneSize.x, sceneSize.y);
     // @ts-ignore
     bg.fill = new Texture("/bg.jpg");
+    sceneRoot.add(bg);
+
+    sceneRoot.matrix.manual = true;
+    sceneRoot.matrix.translate(sceneSize.x / 2, sceneSize.y / 2);
   };
 
   const update = () => {};
-
-  const onKeyUp = (e: KeyboardEvent) => {
-    if (movingCornerRef.current && arrowKeys.includes(e.code)) {
-      const amount = 10;
-      const corner = corners[movingCornerRef.current];
-      if (e.code === "ArrowUp") {
-        corner.y -= amount;
-      } else if (e.code === "ArrowRight") {
-        corner.x += amount;
-      } else if (e.code === "ArrowDown") {
-        corner.y += amount;
-      } else if (e.code === "ArrowLeft") {
-        corner.x -= amount;
-      }
-      setCorners({ ...corners });
-    } else {
-      movingCornerRef.current = cornerKeyMap[e.code];
-      setMovingCorner(cornerKeyMap[e.code]);
-    }
-    e.preventDefault();
-  };
-
-  useEffect(() => {
-    console.log("movingCorner", movingCorner);
-  }, [movingCorner]);
-
-  useEffect(() => {
-    console.log("corners", corners);
-  }, [corners]);
 
   useEffect(() => {
     const el = domElement.current;
     two.appendTo(el);
     setup();
     two.bind("update", update);
-    window.addEventListener("keyup", onKeyUp, false);
 
     return () => {
       two.unbind("update");
       two.pause();
       el.removeChild(two.renderer.domElement);
-      window.removeEventListener("keyup", onKeyUp, false);
     };
   }, []);
 

@@ -20,7 +20,7 @@ export default function App() {
     setHeight(getHeight());
   };
 
-  const onPointerMove = (e: MouseEvent) => {
+  const onPointerMove = (_e: MouseEvent) => {
     // var mouse = transposeEvent(e);
     // console.log(mouse.clientX, mouse.clientY);
   };
