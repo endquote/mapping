@@ -1,7 +1,9 @@
+import PerspT from "perspective-transform";
 import React, { useEffect, useRef, useState } from "react";
 import Two from "two.js";
 import { Texture } from "two.js/src/effects/texture";
 import { Group } from "two.js/src/group";
+import { Matrix } from "two.js/src/matrix";
 import { Rectangle } from "two.js/src/shapes/rectangle";
 import { Vector } from "two.js/src/vector";
 import { useKeyState } from "use-key-state";
@@ -13,6 +15,7 @@ export default function Canvas() {
   const [two] = useState<Two>(new Two({ fullscreen: true, autostart: true }));
   const [sceneSize] = useState<Vector>(new Vector(1920, 1080));
   const [sceneRoot] = useState<Group>(new Group());
+  const [transform, setTransform] = useState<Matrix>(new Matrix());
 
   // select a corner by pressing Q/W/S/A
 
@@ -35,6 +38,8 @@ export default function Canvas() {
     } else if (selectSW.down) {
       setSelectedCorner(selectedCorner === "SW" ? undefined : "SW");
     }
+
+    console.log("selectedCorner", selectedCorner);
   }, [selectNW, selectNE, selectSE, selectSW]);
 
   // nudge the selected corner with arrow keys
@@ -60,54 +65,88 @@ export default function Canvas() {
   );
 
   useEffect(() => {
+    if (
+      !nudgeN.pressed &&
+      !nudgeE.pressed &&
+      !nudgeS.pressed &&
+      !nudgeW.pressed
+    ) {
+      return;
+    }
+
     const targets = selectedCorner
       ? [pins[selectedCorner]]
       : Object.values(pins);
 
-    let changed = false;
-
-    if (nudgeN.pressed) {
-      targets.forEach((t) => (t.y -= 1));
-      changed = true;
+    for (const pin of targets) {
+      if (nudgeN.pressed) {
+        pin.y -= 1;
+      }
+      if (nudgeE.pressed) {
+        pin.x += 1;
+      }
+      if (nudgeS.pressed) {
+        pin.y += 1;
+      }
+      if (nudgeW.pressed) {
+        pin.x -= 1;
+      }
     }
 
-    if (nudgeE.pressed) {
-      targets.forEach((t) => (t.x += 1));
-      changed = true;
-    }
-
-    if (nudgeS.pressed) {
-      targets.forEach((t) => (t.y += 1));
-      changed = true;
-    }
-
-    if (nudgeW.pressed) {
-      targets.forEach((t) => (t.x -= 1));
-      changed = true;
-    }
-
-    if (changed) {
-      setPins({ ...pins });
-    }
+    setPins({ ...pins });
   }, [nudgeN, nudgeS, nudgeW, nudgeE]);
 
   useEffect(() => {
-    console.log(pins);
+    const perspT = PerspT(
+      [0, 0, sceneSize.x, 0, sceneSize.x, sceneSize.y, 0, sceneSize.y],
+      [
+        pins.NW.x,
+        pins.NW.y,
+        pins.NE.x,
+        pins.NE.y,
+        pins.SE.x,
+        pins.SE.y,
+        pins.SW.x,
+        pins.SW.y,
+      ]
+    );
+    setTransform(new Matrix(perspT.coeffs));
   }, [pins]);
 
+  useEffect(() => {
+    const [a, b, c, d, e, f, g, h, i] = transform.elements;
+    sceneRoot.matrix.set(a, b, c, d, e, f, g, h, i);
+  }, [transform]);
+
+  // initialize the scene
+
   const setup = () => {
+    sceneRoot.matrix.manual = true;
     two.add(sceneRoot);
 
     const bg = new Rectangle(0, 0, sceneSize.x, sceneSize.y);
-    // @ts-ignore
-    bg.fill = new Texture("/bg.jpg");
+    // weird casting because ts-ignore breaks prettier here
+    bg.fill = new Texture("/bg.jpg") as unknown as string;
+    bg.linewidth = 0;
+    bg.position.x = sceneSize.x / 2;
+    bg.position.y = sceneSize.y / 2;
     sceneRoot.add(bg);
 
-    sceneRoot.matrix.manual = true;
-    sceneRoot.matrix.translate(sceneSize.x / 2, sceneSize.y / 2);
+    pins.NW.x = 0;
+    pins.NW.y = 0;
+    pins.NE.x = pins.NW.x + sceneSize.x;
+    pins.NE.y = pins.NW.y;
+    pins.SE.x = pins.NE.x;
+    pins.SE.y = pins.NE.y + sceneSize.y;
+    pins.SW.x = pins.NW.x;
+    pins.SW.y = pins.SE.y;
+
+    setPins({ ...pins });
   };
 
   const update = () => {};
+
+  // initialize two.js
 
   useEffect(() => {
     const el = domElement.current;
