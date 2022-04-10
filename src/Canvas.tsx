@@ -60,30 +60,29 @@ export default function Canvas() {
   );
 
   useEffect(() => {
-    if (!selectedCorner) {
-      return;
-    }
+    const targets = selectedCorner
+      ? [pins[selectedCorner]]
+      : Object.values(pins);
 
-    const pin = pins[selectedCorner];
     let changed = false;
 
     if (nudgeN.pressed) {
-      pin.y -= 1;
+      targets.forEach((t) => (t.y -= 1));
       changed = true;
     }
 
     if (nudgeE.pressed) {
-      pin.x += 1;
+      targets.forEach((t) => (t.x += 1));
       changed = true;
     }
 
     if (nudgeS.pressed) {
-      pin.y += 1;
+      targets.forEach((t) => (t.y += 1));
       changed = true;
     }
 
     if (nudgeW.pressed) {
-      pin.x -= 1;
+      targets.forEach((t) => (t.x -= 1));
       changed = true;
     }
 
