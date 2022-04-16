@@ -1,43 +1,57 @@
 import PerspT from "perspective-transform";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
-import { Vector } from "two.js/src/vector";
 import { useKeyState } from "use-key-state";
+import useLocalStorageState from "use-local-storage-state";
 
 type Corner = "NW" | "NE" | "SE" | "SW";
 
-type CornerPinProps = { width: number; height: number; children: ReactNode };
+type CornerPinProps = {
+  width: number;
+  height: number;
+  children: ReactNode;
+  storageKey: string;
+};
+
+type Point = { x: number; y: number };
 
 // basically a port of this to React
 // https://github.com/jlouthan/perspective-transform/tree/gh-pages/examples/css-matrix3d
 
-export default function CornerPin({ width, height, children }: CornerPinProps) {
+export default function CornerPin({
+  width,
+  height,
+  children,
+  storageKey,
+}: CornerPinProps) {
   const domElement = useRef<HTMLDivElement>(null!);
-  const [transform, setTransform] = useState<number[]>([
-    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
-  ]);
 
-  // initialize the scene
+  // pins represent where each corner of the image is nudged to
+  const [pins, setPins, { removeItem: resetPins }] = useLocalStorageState<
+    Record<Corner, Point>
+  >(`${storageKey}:pins`, {
+    defaultValue: {
+      NW: { x: 0, y: 0 },
+      NE: { x: width, y: 0 },
+      SE: { x: width, y: height },
+      SW: { x: 0, y: height },
+    },
+  });
 
-  useEffect(() => {
-    resetPins();
-  }, [width, height]);
+  // the corner currently being nudged, if none selected then nudge all
+  const [selectedCorner, setSelectedCorner] = useState<Corner | undefined>();
 
-  const resetPins = () => {
-    pins.NW.x = 0;
-    pins.NW.y = 0;
-    pins.NE.x = pins.NW.x + width;
-    pins.NE.y = pins.NW.y;
-    pins.SE.x = pins.NE.x;
-    pins.SE.y = pins.NE.y + height;
-    pins.SW.x = pins.NW.x;
-    pins.SW.y = pins.SE.y;
-
-    setPins({ ...pins });
-  };
+  // the matrix transform to apply to the image
+  const [transform, setTransform] = useState(
+    // prettier-ignore
+    [
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+    ]
+  );
 
   // select a corner by pressing Q/W/S/A
-
-  const [selectedCorner, setSelectedCorner] = useState<Corner | undefined>();
 
   const { selectNW, selectNE, selectSE, selectSW, reset } = useKeyState(
     {
@@ -51,31 +65,25 @@ export default function CornerPin({ width, height, children }: CornerPinProps) {
   );
 
   useEffect(() => {
-    if (selectNW.down) {
-      setSelectedCorner(selectedCorner === "NW" ? undefined : "NW");
-    } else if (selectNE.down) {
-      setSelectedCorner(selectedCorner === "NE" ? undefined : "NE");
-    } else if (selectSE.down) {
-      setSelectedCorner(selectedCorner === "SE" ? undefined : "SE");
-    } else if (selectSW.down) {
-      setSelectedCorner(selectedCorner === "SW" ? undefined : "SW");
-    } else if (reset.down) {
+    if (reset.down) {
       resetPins();
     }
-  }, [selectNW, selectNE, selectSE, selectSW, reset]);
 
-  useEffect(() => {
-    // console.log("selectedCorner", selectedCorner);
-  }, [selectedCorner]);
+    setSelectedCorner((selectedCorner) => {
+      if (selectNW.down) {
+        return selectedCorner === "NW" ? undefined : "NW";
+      } else if (selectNE.down) {
+        return selectedCorner === "NE" ? undefined : "NE";
+      } else if (selectSE.down) {
+        return selectedCorner === "SE" ? undefined : "SE";
+      } else if (selectSW.down) {
+        return selectedCorner === "SW" ? undefined : "SW";
+      }
+      return selectedCorner;
+    });
+  }, [selectNW, selectNE, selectSE, selectSW, reset, resetPins]);
 
   // nudge the selected corner with arrow keys
-
-  const [pins, setPins] = useState<Record<Corner, Vector>>({
-    NW: new Vector(),
-    NE: new Vector(),
-    SE: new Vector(),
-    SW: new Vector(),
-  });
 
   const { nudgeN, nudgeS, nudgeW, nudgeE } = useKeyState(
     {
@@ -91,36 +99,29 @@ export default function CornerPin({ width, height, children }: CornerPinProps) {
   );
 
   useEffect(() => {
-    if (
-      !nudgeN.pressed &&
-      !nudgeE.pressed &&
-      !nudgeS.pressed &&
-      !nudgeW.pressed
-    ) {
-      return;
-    }
+    setPins((pins) => {
+      const targets = selectedCorner
+        ? [pins[selectedCorner]]
+        : Object.values(pins);
 
-    const targets = selectedCorner
-      ? [pins[selectedCorner]]
-      : Object.values(pins);
+      for (const pin of targets) {
+        if (nudgeN.pressed) {
+          pin.y -= 1;
+        }
+        if (nudgeE.pressed) {
+          pin.x += 1;
+        }
+        if (nudgeS.pressed) {
+          pin.y += 1;
+        }
+        if (nudgeW.pressed) {
+          pin.x -= 1;
+        }
+      }
 
-    for (const pin of targets) {
-      if (nudgeN.pressed) {
-        pin.y -= 1;
-      }
-      if (nudgeE.pressed) {
-        pin.x += 1;
-      }
-      if (nudgeS.pressed) {
-        pin.y += 1;
-      }
-      if (nudgeW.pressed) {
-        pin.x -= 1;
-      }
-    }
-
-    setPins({ ...pins });
-  }, [nudgeN, nudgeS, nudgeW, nudgeE]);
+      return pins;
+    });
+  }, [nudgeE, nudgeN, nudgeS, nudgeW, selectedCorner, setPins]);
 
   useEffect(() => {
     // prettier-ignore
@@ -148,7 +149,7 @@ export default function CornerPin({ width, height, children }: CornerPinProps) {
     // console.log(src, dest, c);
 
     setTransform(m);
-  }, [pins]);
+  }, [height, pins, width]);
 
   return (
     <div

@@ -36,7 +36,7 @@ export default function Penny() {
       two.pause();
       el.removeChild(two.renderer.domElement);
     };
-  }, [two]);
+  }, [sceneRoot, sceneSize, two]);
 
   const update = () => {};
 

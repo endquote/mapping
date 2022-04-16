@@ -6,7 +6,7 @@ import Penny from "./Penny";
 export default function App() {
   return (
     <div>
-      <CornerPin width={1920} height={1080}>
+      <CornerPin width={1920} height={1080} storageKey={"penny"}>
         <Penny />
       </CornerPin>
     </div>
