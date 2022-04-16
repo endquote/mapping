@@ -1,71 +1,51 @@
 import PerspT from "perspective-transform";
-import React, { useEffect, useRef, useState } from "react";
-import Two from "two.js";
-import { Texture } from "two.js/src/effects/texture";
-import { Group } from "two.js/src/group";
-import { Matrix } from "two.js/src/matrix";
-import { Rectangle } from "two.js/src/shapes/rectangle";
+import React, { ReactNode, useEffect, useRef, useState } from "react";
 import { Vector } from "two.js/src/vector";
 import { useKeyState } from "use-key-state";
 
 type Corner = "NW" | "NE" | "SE" | "SW";
 
-export default function Canvas() {
+type CornerPinProps = { width: number; height: number; children: ReactNode };
+
+// basically a port of this to React
+// https://github.com/jlouthan/perspective-transform/tree/gh-pages/examples/css-matrix3d
+
+export default function CornerPin({ width, height, children }: CornerPinProps) {
   const domElement = useRef<HTMLDivElement>(null!);
-  const [two] = useState<Two>(
-    new Two({ fullscreen: true, autostart: true, type: Two.Types.svg })
-  );
-  const [sceneSize] = useState<Vector>(new Vector(1920, 1080));
-  const [sceneRoot] = useState<Group>(new Group());
-  const [transform, setTransform] = useState<Matrix>(new Matrix());
+  const [transform, setTransform] = useState<number[]>([
+    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1,
+  ]);
 
   // initialize the scene
 
   useEffect(() => {
-    console.log("setup");
-    const el = domElement.current;
-    two.appendTo(el);
-    two.bind("update", update);
+    resetPins();
+  }, [width, height]);
 
-    sceneRoot.matrix.manual = true;
-    two.add(sceneRoot);
-
-    const bg = new Rectangle(0, 0, sceneSize.x, sceneSize.y);
-    // weird casting because ts-ignore breaks prettier here
-    bg.fill = new Texture("/bg.jpg") as unknown as string;
-    bg.linewidth = 0;
-    bg.position.x = sceneSize.x / 2;
-    bg.position.y = sceneSize.y / 2;
-    sceneRoot.add(bg);
-
+  const resetPins = () => {
     pins.NW.x = 0;
     pins.NW.y = 0;
-    pins.NE.x = pins.NW.x + sceneSize.x;
+    pins.NE.x = pins.NW.x + width;
     pins.NE.y = pins.NW.y;
     pins.SE.x = pins.NE.x;
-    pins.SE.y = pins.NE.y + sceneSize.y;
+    pins.SE.y = pins.NE.y + height;
     pins.SW.x = pins.NW.x;
     pins.SW.y = pins.SE.y;
 
     setPins({ ...pins });
-
-    return () => {
-      two.unbind("update");
-      two.pause();
-      el.removeChild(two.renderer.domElement);
-    };
-  }, [two]);
+  };
 
   // select a corner by pressing Q/W/S/A
 
   const [selectedCorner, setSelectedCorner] = useState<Corner | undefined>();
 
-  const { selectNW, selectNE, selectSE, selectSW } = useKeyState(
+  const { selectNW, selectNE, selectSE, selectSW, reset } = useKeyState(
     {
       selectNW: "Q",
       selectNE: "W",
       selectSE: "S",
       selectSW: "A",
+      reset: "space",
     },
     { ignoreRepeatEvents: true }
   );
@@ -79,11 +59,13 @@ export default function Canvas() {
       setSelectedCorner(selectedCorner === "SE" ? undefined : "SE");
     } else if (selectSW.down) {
       setSelectedCorner(selectedCorner === "SW" ? undefined : "SW");
+    } else if (reset.down) {
+      resetPins();
     }
-  }, [selectNW, selectNE, selectSE, selectSW]);
+  }, [selectNW, selectNE, selectSE, selectSW, reset]);
 
   useEffect(() => {
-    console.log("selectedCorner", selectedCorner);
+    // console.log("selectedCorner", selectedCorner);
   }, [selectedCorner]);
 
   // nudge the selected corner with arrow keys
@@ -143,8 +125,8 @@ export default function Canvas() {
   useEffect(() => {
     // prettier-ignore
     const src = [
-      0, 0, sceneSize.x, 0,
-      sceneSize.x, sceneSize.y, 0, sceneSize.y,
+      0, 0, width, 0,
+      width, height, 0, height
     ];
 
     // prettier-ignore
@@ -156,23 +138,29 @@ export default function Canvas() {
     const { coeffs: c } = PerspT(src, dest);
 
     // prettier-ignore
-    const m = new Matrix(
-      c[0], c[3], c[6],
-      c[1], c[4], c[7],
-      c[2], c[5], c[8]
-    );
+    const m = [
+      c[0], c[3], 0, c[6],
+      c[1], c[4], 0, c[7],
+      0, 0, 1, 0,
+      c[2], c[5], 0, c[8],
+    ];
 
-    console.log(src, dest, c);
+    // console.log(src, dest, c);
 
     setTransform(m);
   }, [pins]);
 
-  useEffect(() => {
-    const [a, b, c, d, e, f, g, h, i] = transform.elements;
-    sceneRoot.matrix.set(a, b, c, d, e, f, g, h, i);
-  }, [transform]);
-
-  const update = () => {};
-
-  return <div ref={domElement} />;
+  return (
+    <div
+      ref={domElement}
+      style={{
+        transform: `matrix3d(${transform.join(",")})`,
+        transformOrigin: "0 0",
+        width: `${width}px`,
+        height: `${height}px`,
+      }}
+    >
+      {children}
+    </div>
+  );
 }
