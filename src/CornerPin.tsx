@@ -53,16 +53,13 @@ export default function CornerPin({
 
   // select a corner by pressing Q/W/S/A
 
-  const { selectNW, selectNE, selectSE, selectSW } = useKeyState(
-    {
-      selectNW: "Q",
-      selectNE: "W",
-      selectSE: "S",
-      selectSW: "A",
-      fullScreen: "F",
-    },
-    { ignoreRepeatEvents: true }
-  );
+  const { selectNW, selectNE, selectSE, selectSW } = useKeyState({
+    selectNW: "Q",
+    selectNE: "W",
+    selectSE: "S",
+    selectSW: "A",
+    fullScreen: "F",
+  });
 
   useEffect(() => {
     setSelectedCorner((selectedCorner) => {
@@ -149,10 +146,7 @@ export default function CornerPin({
 
   // reset pins with space bar
 
-  const { reset } = useKeyState(
-    { reset: "space" },
-    { ignoreRepeatEvents: true }
-  );
+  const { reset } = useKeyState({ reset: "space" });
 
   useEffect(() => {
     if (reset.down) {
@@ -162,10 +156,7 @@ export default function CornerPin({
 
   // enter full screen with F key
 
-  const { fullScreen } = useKeyState(
-    { fullScreen: "F" },
-    { ignoreRepeatEvents: true }
-  );
+  const { fullScreen } = useKeyState({ fullScreen: "F" });
 
   useEffect(() => {
     if (fullScreen.down) {
