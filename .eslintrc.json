@@ -28,6 +28,7 @@
     "@typescript-eslint/ban-ts-comment": "off",
     "@typescript-eslint/no-empty-function": "warn",
     "@typescript-eslint/no-extra-semi": "warn",
+    "no-empty": "warn",
     "indent": [
       "error",
       2
