@@ -53,22 +53,18 @@ export default function CornerPin({
 
   // select a corner by pressing Q/W/S/A
 
-  const { selectNW, selectNE, selectSE, selectSW, reset } = useKeyState(
+  const { selectNW, selectNE, selectSE, selectSW } = useKeyState(
     {
       selectNW: "Q",
       selectNE: "W",
       selectSE: "S",
       selectSW: "A",
-      reset: "space",
+      fullScreen: "F",
     },
     { ignoreRepeatEvents: true }
   );
 
   useEffect(() => {
-    if (reset.down) {
-      resetPins();
-    }
-
     setSelectedCorner((selectedCorner) => {
       if (selectNW.down) {
         return selectedCorner === "NW" ? undefined : "NW";
@@ -81,7 +77,7 @@ export default function CornerPin({
       }
       return selectedCorner;
     });
-  }, [selectNW, selectNE, selectSE, selectSW, reset, resetPins]);
+  }, [selectNW, selectNE, selectSE, selectSW]);
 
   // nudge the selected corner with arrow keys
 
@@ -149,7 +145,33 @@ export default function CornerPin({
     // console.log(src, dest, c);
 
     setTransform(m);
-  }, [height, pins, width]);
+  }, [pins, height, width]);
+
+  // reset pins with space bar
+
+  const { reset } = useKeyState(
+    { reset: "space" },
+    { ignoreRepeatEvents: true }
+  );
+
+  useEffect(() => {
+    if (reset.down) {
+      resetPins();
+    }
+  }, [reset, resetPins]);
+
+  // enter full screen with F key
+
+  const { fullScreen } = useKeyState(
+    { fullScreen: "F" },
+    { ignoreRepeatEvents: true }
+  );
+
+  useEffect(() => {
+    if (fullScreen.down) {
+      domElement.current.requestFullscreen({ navigationUI: "hide" });
+    }
+  }, [fullScreen]);
 
   return (
     <div
