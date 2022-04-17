@@ -174,16 +174,17 @@ export default function CornerPin({
   }, [fullScreen]);
 
   return (
-    <div
-      ref={domElement}
-      style={{
-        transform: `matrix3d(${transform.join(",")})`,
-        transformOrigin: "0 0",
-        width: `${width}px`,
-        height: `${height}px`,
-      }}
-    >
-      {children}
+    <div ref={domElement}>
+      <div
+        style={{
+          transform: `matrix3d(${transform.join(",")})`,
+          transformOrigin: "0 0",
+          width: `${width}px`,
+          height: `${height}px`,
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
