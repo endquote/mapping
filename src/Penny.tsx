@@ -25,7 +25,7 @@ export default function Penny() {
 
     const bg = new Rectangle(0, 0, sceneSize.x, sceneSize.y);
     // weird casting because ts-ignore breaks prettier here
-    bg.fill = new Texture("/bg.jpg") as unknown as string;
+    bg.fill = new Texture("/bg-test.png") as unknown as string;
     bg.linewidth = 0;
     bg.position.x = sceneSize.x / 2;
     bg.position.y = sceneSize.y / 2;
