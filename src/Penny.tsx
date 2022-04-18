@@ -1,6 +1,5 @@
 import { useGesture } from "@use-gesture/react";
 import React, { useEffect, useRef, useState } from "react";
-import Two from "two.js";
 import { Texture } from "two.js/src/effects/texture";
 import { Group } from "two.js/src/group";
 import { Circle } from "two.js/src/shapes/circle";
@@ -22,8 +21,7 @@ export default function Penny({ storageKey }: PennyProps) {
   // initialize two.js
 
   const divRef = useRef<HTMLDivElement>(null!);
-  const twoRef = useRef<Two>(null!);
-  const frameCount = useTwo(divRef, twoRef);
+  const [frameCount, twoRef] = useTwo(divRef);
   const sceneSize = useRef<Vector>(new Vector(1920, 1080));
 
   // handle mouse events
@@ -61,7 +59,7 @@ export default function Penny({ storageKey }: PennyProps) {
     const circle = (two.scene as Group).children[1] as Circle;
     circle.position.x = mouse.x;
     circle.position.y = mouse.y;
-  }, [frameCount, mouse]);
+  }, [frameCount, mouse, twoRef]);
 
   return <div ref={divRef}></div>;
 }

@@ -1,11 +1,11 @@
-import { MutableRefObject, useEffect, useState } from "react";
+import { MutableRefObject, useEffect, useRef, useState } from "react";
 import Two from "two.js";
 
 export function useTwo(
-  divRef: MutableRefObject<HTMLDivElement>,
-  twoRef: MutableRefObject<Two>
-) {
+  divRef: MutableRefObject<HTMLDivElement>
+): [number, MutableRefObject<Two>] {
   const [frameCount, setFrameCount] = useState(0);
+  const twoRef = useRef<Two>(null!);
 
   useEffect(() => {
     if (twoRef.current) {
@@ -32,5 +32,5 @@ export function useTwo(
     };
   }, [divRef, twoRef]);
 
-  return frameCount;
+  return [frameCount, twoRef];
 }
