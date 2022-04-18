@@ -7,7 +7,7 @@ export default function App() {
   return (
     <div>
       <CornerPin width={1920} height={1080} storageKey={"penny"}>
-        <Penny />
+        <Penny storageKey={"penny"} />
       </CornerPin>
     </div>
   );

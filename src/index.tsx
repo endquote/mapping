@@ -6,11 +6,8 @@ import "./index.css";
 const container = document.getElementById("root");
 const root = createRoot(container!);
 
-// something about two's SVG doesn't work in strictmode?
-// root.render(
-//   <React.StrictMode>
-//     <App />
-//   </React.StrictMode>
-// );
-
-root.render(<App />);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

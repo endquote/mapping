@@ -8,6 +8,7 @@
     "@types/react-dom": "18.0.1",
     "@typescript-eslint/eslint-plugin": "5.19.0",
     "@typescript-eslint/parser": "5.19.0",
+    "@use-gesture/react": "10.2.11",
     "eslint": "8.13.0",
     "eslint-plugin-import": "2.26.0",
     "eslint-plugin-jsx-a11y": "6.5.1",
