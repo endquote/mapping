@@ -7,6 +7,7 @@ import { Circle } from "two.js/src/shapes/circle";
 import { Rectangle } from "two.js/src/shapes/rectangle";
 import { Vector } from "two.js/src/vector";
 import useLocalStorageState from "use-local-storage-state";
+import { useTwo } from "./useTwo";
 
 type PennyProps = {
   storageKey: string;
@@ -22,35 +23,8 @@ export default function Penny({ storageKey }: PennyProps) {
 
   const divRef = useRef<HTMLDivElement>(null!);
   const twoRef = useRef<Two>(null!);
-  const sceneSize = useRef<Vector>(null!);
-  const [frameCount, setFrameCount] = useState(0);
-
-  useEffect(() => {
-    sceneSize.current = new Vector(1920, 1080);
-
-    if (twoRef.current) {
-      Two.Instances = Two.Instances.filter((i) => i !== twoRef.current);
-    }
-
-    twoRef.current = new Two({
-      fullscreen: true,
-      autostart: true,
-      type: Two.Types.svg,
-    });
-
-    const two = twoRef.current;
-    const div = divRef.current;
-
-    two.appendTo(divRef.current);
-    two.bind("update", () => setFrameCount(two.frameCount));
-
-    return () => {
-      two.clear();
-      two.unbind("update");
-      two.pause();
-      div.removeChild(two.renderer.domElement);
-    };
-  }, []);
+  const frameCount = useTwo(divRef, twoRef);
+  const sceneSize = useRef<Vector>(new Vector(1920, 1080));
 
   // handle mouse events
 
