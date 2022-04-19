@@ -21,7 +21,7 @@ export default function Penny({ storageKey }: PennyProps) {
   // initialize two.js
 
   const divRef = useRef<HTMLDivElement>(null!);
-  const [frameCount, twoRef] = useTwo(divRef);
+  const [two, frame] = useTwo(divRef);
   const sceneSize = useRef<Vector>(new Vector(1920, 1080));
 
   // handle mouse events
@@ -37,10 +37,16 @@ export default function Penny({ storageKey }: PennyProps) {
   );
 
   useEffect(() => {
-    const two = twoRef.current;
+    // not initialized yet
+    if (!two) {
+      return;
+    }
+
     const { x, y } = sceneSize.current;
 
-    if (frameCount === 0) {
+    // scene setup
+
+    if (!(two.scene as Group).children.length) {
       two.clear();
 
       const bg = new Rectangle(0, 0, x, y);
@@ -56,10 +62,12 @@ export default function Penny({ storageKey }: PennyProps) {
       two.add(circle);
     }
 
+    // scene update
+
     const circle = (two.scene as Group).children[1] as Circle;
     circle.position.x = mouse.x;
     circle.position.y = mouse.y;
-  }, [frameCount, mouse, twoRef]);
+  }, [two, frame, mouse]);
 
   return <div ref={divRef}></div>;
 }

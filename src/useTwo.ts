@@ -1,10 +1,8 @@
 import { MutableRefObject, useEffect, useRef, useState } from "react";
 import Two from "two.js";
 
-export function useTwo(
-  divRef: MutableRefObject<HTMLDivElement>
-): [number, MutableRefObject<Two>] {
-  const [frameCount, setFrameCount] = useState(0);
+export function useTwo(divRef: MutableRefObject<HTMLDivElement>): [Two, number] {
+  const [frame, setFrame] = useState(0);
   const twoRef = useRef<Two>(null!);
 
   useEffect(() => {
@@ -22,7 +20,7 @@ export function useTwo(
     const div = divRef.current;
 
     two.appendTo(divRef.current);
-    two.bind("update", () => setFrameCount(two.frameCount));
+    two.bind("update", () => setFrame(two.frameCount));
 
     return () => {
       two.clear();
@@ -32,5 +30,5 @@ export function useTwo(
     };
   }, [divRef, twoRef]);
 
-  return [frameCount, twoRef];
+  return [twoRef.current, frame];
 }
