@@ -26,6 +26,7 @@ export default function Editor({ storageKey }: PennyProps) {
       defaultValue: [],
     });
 
+  // set up keyboard handling
   const { nextRadius, undo, reset } = useKeyState({
     nextRadius: "R",
     undo: "U",
@@ -82,22 +83,20 @@ export default function Editor({ storageKey }: PennyProps) {
   );
 
   // initialize two.js
-  const [two] = useTwo(divRef);
+  const [scene] = useTwo(divRef);
   const sceneSize = useRef<Vector>(new Vector(1920, 1080));
 
   // set up the scene
   useEffect(() => {
-    if (!two) {
-      return;
-    }
-
-    if ((two.scene as Group).children.length) {
+    if (scene.children.length) {
       return;
     }
 
     const { x: width, y: height } = sceneSize.current;
 
-    two.clear();
+    while (scene.children.length) {
+      scene.children[0].remove();
+    }
 
     // background image
     const bg = new Rectangle(0, 0, width, height);
@@ -105,38 +104,30 @@ export default function Editor({ storageKey }: PennyProps) {
     bg.linewidth = 0;
     bg.position.x = width / 2;
     bg.position.y = height / 2;
-    two.add(bg);
+    scene.add(bg);
 
     // a group for holding the circles
     const circleGroup = new Group();
-    two.add(circleGroup);
+    scene.add(circleGroup);
 
     // a circle cursor
     const cursor = new Circle(0, 0, 10);
     cursor.fill = "green";
     cursor.linewidth = 0;
-    two.add(cursor);
-  }, [two]);
+    scene.add(cursor);
+  }, [scene]);
 
   // track the mouse position with the cursor
   useEffect(() => {
-    if (!two) {
-      return;
-    }
-
-    const cursor = (two.scene as Group).children[2] as Circle;
+    const cursor = scene.children[2] as Circle;
     cursor.radius = radius;
     cursor.position.x = mouse.x;
     cursor.position.y = mouse.y;
-  }, [two, mouse, radius]);
+  }, [scene, mouse, radius]);
 
   // draw the clicked circles
   useEffect(() => {
-    if (!two) {
-      return;
-    }
-
-    const circleGroup = (two.scene as Group).children[1] as Group;
+    const circleGroup = scene.children[1] as Group;
     while (circleGroup.children.length) {
       circleGroup.children[0].remove();
     }
@@ -148,7 +139,7 @@ export default function Editor({ storageKey }: PennyProps) {
       circle.opacity = 0.5;
       circleGroup.add(circle);
     }
-  }, [two, circles]);
+  }, [scene, circles]);
 
   return <div ref={divRef}></div>;
 }
