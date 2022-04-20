@@ -54,9 +54,9 @@ export default function Editor(
   const [radius, setRadius] = useState(radii.current[0]);
 
   // set up keyboard handling
-  const { nextRadius, background, remove, reset } = useKeyState({
+  const { nextRadius, toggleBg, remove, reset } = useKeyState({
     nextRadius: "R",
-    background: "B",
+    toggleBg: "B",
     remove: "shift+D",
     reset: "shift+O",
   });
@@ -75,12 +75,12 @@ export default function Editor(
 
   // B to toggle the background
   useEffect(() => {
-    if (!background.pressed) {
+    if (!toggleBg.pressed) {
       return;
     }
     const bg = scene.children[0] as Rectangle;
     bg.fill = bg.fill === "black" ? bgTexture.current : "black";
-  }, [background, scene]);
+  }, [toggleBg, scene]);
 
   // shift+D to delete the penny closest to the cursor
   useEffect(() => {

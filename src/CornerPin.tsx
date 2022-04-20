@@ -63,13 +63,13 @@ export default function CornerPin(
 
   useEffect(() => {
     setSelectedCorner((selectedCorner) => {
-      if (selectNW.down) {
+      if (selectNW.pressed) {
         return selectedCorner === "NW" ? undefined : "NW";
-      } else if (selectNE.down) {
+      } else if (selectNE.pressed) {
         return selectedCorner === "NE" ? undefined : "NE";
-      } else if (selectSE.down) {
+      } else if (selectSE.pressed) {
         return selectedCorner === "SE" ? undefined : "SE";
-      } else if (selectSW.down) {
+      } else if (selectSW.pressed) {
         return selectedCorner === "SW" ? undefined : "SW";
       }
       return selectedCorner;
@@ -149,7 +149,7 @@ export default function CornerPin(
   const { reset } = useKeyState({ reset: "space" });
 
   useEffect(() => {
-    if (reset.down) {
+    if (reset.pressed) {
       resetPins();
     }
   }, [reset, resetPins]);
@@ -159,7 +159,7 @@ export default function CornerPin(
   const { fullScreen } = useKeyState({ fullScreen: "F" });
 
   useEffect(() => {
-    if (fullScreen.down) {
+    if (fullScreen.pressed) {
       domElement.current.requestFullscreen({ navigationUI: "hide" });
     }
   }, [fullScreen]);
