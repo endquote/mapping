@@ -16,6 +16,11 @@ export default function Editor(
 ) {
   const divRef = useRef<HTMLDivElement>(null!);
 
+  // initialize two.js
+  const [scene] = useTwo(divRef);
+  const sceneSize = useRef(new Vector(1920, 1080));
+  const bgTexture = useRef(new Texture("/bg.jpg") as unknown as string);
+
   // store the circles
   const [pennies, setPennies, { removeItem: resetPennies }] =
     useLocalStorageState<number[][]>(`${storageKey}:circles`, {
@@ -49,8 +54,9 @@ export default function Editor(
   const [radius, setRadius] = useState(radii.current[0]);
 
   // set up keyboard handling
-  const { nextRadius, remove, reset } = useKeyState({
+  const { nextRadius, background, remove, reset } = useKeyState({
     nextRadius: "R",
+    background: "B",
     remove: "shift+D",
     reset: "shift+O",
   });
@@ -66,6 +72,15 @@ export default function Editor(
       return radii.current[i];
     });
   }, [nextRadius]);
+
+  // B to toggle the background
+  useEffect(() => {
+    if (!background.pressed) {
+      return;
+    }
+    const bg = scene.children[0] as Rectangle;
+    bg.fill = bg.fill === "black" ? bgTexture.current : "black";
+  }, [background, scene]);
 
   // shift+D to delete the penny closest to the cursor
   useEffect(() => {
@@ -93,10 +108,6 @@ export default function Editor(
     resetPennies();
   }, [reset, resetPennies]);
 
-  // initialize two.js
-  const [scene] = useTwo(divRef);
-  const sceneSize = useRef<Vector>(new Vector(1920, 1080));
-
   // set up the scene
   useEffect(() => {
     if (scene.children.length) {
@@ -115,7 +126,7 @@ export default function Editor(
     // background image
     const bg = new Rectangle(0, 0, width, height);
     bg.noStroke();
-    bg.fill = new Texture("/bg.jpg") as unknown as string;
+    bg.fill = bgTexture.current;
     bg.position.x = width / 2;
     bg.position.y = height / 2;
     scene.add(bg);
