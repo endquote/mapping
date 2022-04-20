@@ -120,6 +120,13 @@ export default function Editor(
     bg.position.y = height / 2;
     scene.add(bg);
 
+    // mask the scene to the size of the background
+    const mask = new Rectangle(0, 0, width, height);
+    mask.noStroke();
+    mask.position.x = width / 2;
+    mask.position.y = height / 2;
+    scene.mask = mask;
+
     // a group for holding the circles
     const pennyGroup = new Group();
     scene.add(pennyGroup);
