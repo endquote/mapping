@@ -5,24 +5,24 @@ import useLocalStorageState from "use-local-storage-state";
 
 type Corner = "NW" | "NE" | "SE" | "SW";
 
-type CornerPinProps = {
-  width: number;
-  height: number;
-  children: ReactNode;
-  storageKey: string;
-};
-
 type Point = { x: number; y: number };
 
 // basically a port of this to React
 // https://github.com/jlouthan/perspective-transform/tree/gh-pages/examples/css-matrix3d
 
-export default function CornerPin({
-  width,
-  height,
-  children,
-  storageKey,
-}: CornerPinProps) {
+export default function CornerPin(
+  {
+    width,
+    height,
+    children,
+    storageKey,
+  }: {
+    width: number;
+    height: number;
+    children: ReactNode;
+    storageKey: string;
+  } = { width: 1920, height: 1080, children: null, storageKey: "cornerpin" }
+) {
   const domElement = useRef<HTMLDivElement>(null!);
 
   // pins represent where each corner of the image is nudged to

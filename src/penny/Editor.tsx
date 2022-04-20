@@ -9,11 +9,9 @@ import { useKeyState } from "use-key-state";
 import useLocalStorageState from "use-local-storage-state";
 import { useTwo } from "../useTwo";
 
-type PennyProps = {
-  storageKey: string;
-};
-
-export default function Editor({ storageKey }: PennyProps) {
+export default function Editor(
+  { storageKey }: { storageKey: string } = { storageKey: "penny" }
+) {
   const divRef = useRef<HTMLDivElement>(null!);
 
   // different circle sizes
@@ -75,7 +73,11 @@ export default function Editor({ storageKey }: PennyProps) {
       },
       // add a circle on click
       onClick: ({ event }) => {
-        circles.push([radius, event.clientX, event.clientY]);
+        circles.push([
+          radius,
+          event.clientX - scene.position.x,
+          event.clientY - scene.position.y,
+        ]);
         setCircles([...circles]);
       },
     },
@@ -98,6 +100,9 @@ export default function Editor({ storageKey }: PennyProps) {
       scene.children[0].remove();
     }
 
+    // offset scene so that partial circles on the top and left can be hit
+    scene.position.x = scene.position.y = radii.current[0];
+
     // background image
     const bg = new Rectangle(0, 0, width, height);
     bg.fill = new Texture("/bg.jpg") as unknown as string;
@@ -114,6 +119,7 @@ export default function Editor({ storageKey }: PennyProps) {
     const cursor = new Circle(0, 0, 10);
     cursor.fill = "green";
     cursor.linewidth = 0;
+    cursor.opacity = 0.8;
     scene.add(cursor);
   }, [scene]);
 
@@ -121,8 +127,8 @@ export default function Editor({ storageKey }: PennyProps) {
   useEffect(() => {
     const cursor = scene.children[2] as Circle;
     cursor.radius = radius;
-    cursor.position.x = mouse.x;
-    cursor.position.y = mouse.y;
+    cursor.position.x = mouse.x - scene.position.x;
+    cursor.position.y = mouse.y - scene.position.y;
   }, [scene, mouse, radius]);
 
   // draw the clicked circles
