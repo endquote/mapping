@@ -1,5 +1,6 @@
 import { useGesture } from "@use-gesture/react";
 import React, { useEffect, useRef, useState } from "react";
+import Two from "two.js";
 import { Texture } from "two.js/src/effects/texture";
 import { Group } from "two.js/src/group";
 import { Circle } from "two.js/src/shapes/circle";
@@ -21,14 +22,36 @@ export default function Editor(
       defaultValue: coords,
     });
 
+  // mouse location
+  const [mouse, setMouse] = useState<Vector>(new Vector());
+
+  useGesture(
+    {
+      // save mouse location on move
+      onMove: ({ event }) => {
+        setMouse(new Vector(event.clientX, event.clientY));
+      },
+      // add a circle on click
+      onClick: ({ event }) => {
+        pennies.push([
+          event.clientX - scene.position.x,
+          event.clientY - scene.position.y,
+          radius,
+        ]);
+        setPennies([...pennies]);
+      },
+    },
+    { target: divRef }
+  );
+
   // different circle sizes
   const radii = useRef([44, 34, 22, 13]);
   const [radius, setRadius] = useState(radii.current[0]);
 
   // set up keyboard handling
-  const { nextRadius, undo, reset } = useKeyState({
+  const { nextRadius, remove, reset } = useKeyState({
     nextRadius: "R",
-    undo: "U",
+    remove: "shift+D",
     reset: "shift+O",
   });
 
@@ -44,46 +67,31 @@ export default function Editor(
     });
   }, [nextRadius]);
 
-  // U to remove the last circle
+  // shift+D to delete the penny closest to the cursor
   useEffect(() => {
-    if (!undo.pressed) {
+    if (!remove.pressed) {
       return;
     }
     setPennies((pennies) => {
-      pennies.pop();
-      return pennies;
+      const p = [...pennies];
+      // yes i know this is the slowest way to do it
+      p.sort(
+        (a, b) =>
+          Two.Vector.distanceBetween(new Vector(a[0], a[1]), mouse) -
+          Two.Vector.distanceBetween(new Vector(b[0], b[1]), mouse)
+      );
+      p.shift();
+      return p;
     });
-  }, [undo, setPennies]);
+  }, [remove, mouse, setPennies]);
 
-  // shift+O to remove all circles
+  // shift+O to reset to saved pennies
   useEffect(() => {
     if (!reset.pressed) {
       return;
     }
     resetPennies();
   }, [reset, resetPennies]);
-
-  // mouse location
-  const [mouse, setMouse] = useState<Vector>(new Vector());
-
-  useGesture(
-    {
-      // save mouse location on move
-      onMove: ({ event }) => {
-        setMouse(new Vector(event.clientX, event.clientY));
-      },
-      // add a circle on click
-      onClick: ({ event }) => {
-        pennies.push([
-          radius,
-          event.clientX - scene.position.x,
-          event.clientY - scene.position.y,
-        ]);
-        setPennies([...pennies]);
-      },
-    },
-    { target: divRef }
-  );
 
   // initialize two.js
   const [scene] = useTwo(divRef);
@@ -140,7 +148,7 @@ export default function Editor(
     }
 
     for (const coords of pennies) {
-      const circle = new Circle(coords[1], coords[2], coords[0]);
+      const circle = new Circle(coords[0], coords[1], coords[2]);
       circle.noStroke();
       circle.fill = "red";
       circle.opacity = 0.5;
