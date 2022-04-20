@@ -8,21 +8,22 @@ import { Vector } from "two.js/src/vector";
 import { useKeyState } from "use-key-state";
 import useLocalStorageState from "use-local-storage-state";
 import { useTwo } from "../useTwo";
+import { coords } from "./coords";
 
 export default function Editor(
   { storageKey }: { storageKey: string } = { storageKey: "penny" }
 ) {
   const divRef = useRef<HTMLDivElement>(null!);
 
+  // store the circles
+  const [pennies, setPennies, { removeItem: resetPennies }] =
+    useLocalStorageState<number[][]>(`${storageKey}:circles`, {
+      defaultValue: coords,
+    });
+
   // different circle sizes
   const radii = useRef([44, 34, 22, 13]);
   const [radius, setRadius] = useState(radii.current[0]);
-
-  // store the circles
-  const [circles, setCircles, { removeItem: resetCircles }] =
-    useLocalStorageState<number[][]>(`${storageKey}:circles`, {
-      defaultValue: [],
-    });
 
   // set up keyboard handling
   const { nextRadius, undo, reset } = useKeyState({
@@ -48,19 +49,19 @@ export default function Editor(
     if (!undo.pressed) {
       return;
     }
-    setCircles((circles) => {
-      circles.pop();
-      return circles;
+    setPennies((pennies) => {
+      pennies.pop();
+      return pennies;
     });
-  }, [undo, setCircles]);
+  }, [undo, setPennies]);
 
   // shift+O to remove all circles
   useEffect(() => {
     if (!reset.pressed) {
       return;
     }
-    resetCircles();
-  }, [reset, resetCircles]);
+    resetPennies();
+  }, [reset, resetPennies]);
 
   // mouse location
   const [mouse, setMouse] = useState<Vector>(new Vector());
@@ -73,12 +74,12 @@ export default function Editor(
       },
       // add a circle on click
       onClick: ({ event }) => {
-        circles.push([
+        pennies.push([
           radius,
           event.clientX - scene.position.x,
           event.clientY - scene.position.y,
         ]);
-        setCircles([...circles]);
+        setPennies([...pennies]);
       },
     },
     { target: divRef }
@@ -105,20 +106,20 @@ export default function Editor(
 
     // background image
     const bg = new Rectangle(0, 0, width, height);
+    bg.noStroke();
     bg.fill = new Texture("/bg.jpg") as unknown as string;
-    bg.linewidth = 0;
     bg.position.x = width / 2;
     bg.position.y = height / 2;
     scene.add(bg);
 
     // a group for holding the circles
-    const circleGroup = new Group();
-    scene.add(circleGroup);
+    const pennyGroup = new Group();
+    scene.add(pennyGroup);
 
     // a circle cursor
     const cursor = new Circle(0, 0, 10);
+    cursor.noStroke();
     cursor.fill = "green";
-    cursor.linewidth = 0;
     cursor.opacity = 0.8;
     scene.add(cursor);
   }, [scene]);
@@ -133,19 +134,19 @@ export default function Editor(
 
   // draw the clicked circles
   useEffect(() => {
-    const circleGroup = scene.children[1] as Group;
-    while (circleGroup.children.length) {
-      circleGroup.children[0].remove();
+    const pennyGroup = scene.children[1] as Group;
+    while (pennyGroup.children.length) {
+      pennyGroup.children[0].remove();
     }
 
-    for (const coords of circles) {
+    for (const coords of pennies) {
       const circle = new Circle(coords[1], coords[2], coords[0]);
+      circle.noStroke();
       circle.fill = "red";
-      circle.linewidth = 0;
       circle.opacity = 0.5;
-      circleGroup.add(circle);
+      pennyGroup.add(circle);
     }
-  }, [scene, circles]);
+  }, [scene, pennies]);
 
   return <div ref={divRef}></div>;
 }
