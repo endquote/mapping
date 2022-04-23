@@ -34,13 +34,13 @@ export default function Editor(
     {
       // save mouse location on move
       onMove: ({ event }) => {
-        setMouse(new Vector(event.clientX, event.clientY));
+        setMouse(new Vector(event.offsetX, event.offsetY));
       },
       // add a circle on click
-      onClick: ({ event }) => {
+      onClick: () => {
         pennies.push([
-          event.clientX - scene.position.x,
-          event.clientY - scene.position.y,
+          Math.round((mouse.x - scene.position.x) * 10000) / 10000,
+          Math.round((mouse.y - scene.position.y) * 10000) / 10000,
           radius,
         ]);
         setPennies([...pennies]);
@@ -50,7 +50,7 @@ export default function Editor(
   );
 
   // different circle sizes
-  const radii = useRef([44, 34, 22, 13]);
+  const radii = useRef([43, 35, 22, 14]);
   const [radius, setRadius] = useState(radii.current[0]);
 
   // set up keyboard handling
@@ -88,12 +88,16 @@ export default function Editor(
       return;
     }
     setPennies((pennies) => {
+      const cursor = new Vector(
+        mouse.x - radii.current[0] * 2,
+        mouse.y - radii.current[0] * 2
+      );
       const p = [...pennies];
       // yes i know this is the slowest way to do it
       p.sort(
         (a, b) =>
-          Two.Vector.distanceBetween(new Vector(a[0], a[1]), mouse) -
-          Two.Vector.distanceBetween(new Vector(b[0], b[1]), mouse)
+          Two.Vector.distanceBetween(new Vector(a[0], a[1]), cursor) -
+          Two.Vector.distanceBetween(new Vector(b[0], b[1]), cursor)
       );
       p.shift();
       return p;
@@ -121,7 +125,7 @@ export default function Editor(
     }
 
     // offset scene so that partial circles on the top and left can be hit
-    scene.position.x = scene.position.y = radii.current[0];
+    scene.position.x = scene.position.y = radii.current[0] * 2;
 
     // background image
     const bg = new Rectangle(0, 0, width, height);
@@ -168,8 +172,8 @@ export default function Editor(
     for (const coords of pennies) {
       const circle = new Circle(coords[0], coords[1], coords[2]);
       circle.noStroke();
-      circle.fill = "red";
-      circle.opacity = 0.5;
+      circle.fill = "white";
+      circle.opacity = 1;
       pennyGroup.add(circle);
     }
   }, [scene, pennies]);
