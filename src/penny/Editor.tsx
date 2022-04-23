@@ -110,7 +110,7 @@ export default function Editor(
       return;
     }
     resetPennies();
-  }, [reset, resetPennies]);
+  }, [reset, resetPennies]) ;
 
   // set up the scene
   useEffect(() => {
@@ -148,9 +148,10 @@ export default function Editor(
 
     // a circle cursor
     const cursor = new Circle(0, 0, 10);
-    cursor.noStroke();
-    cursor.fill = "green";
-    cursor.opacity = 0.8;
+    cursor.stroke = "red";
+    cursor.linewidth = 1;
+    cursor.fill = "transparent";
+    cursor.opacity = 1;
     scene.add(cursor);
   }, [scene]);
 
@@ -172,11 +173,11 @@ export default function Editor(
     for (const coords of pennies) {
       const circle = new Circle(coords[0], coords[1], coords[2]);
       circle.noStroke();
-      circle.fill = "white";
-      circle.opacity = 1;
+      circle.fill = "red";
+      circle.opacity = 0.6;
       pennyGroup.add(circle);
     }
   }, [scene, pennies]);
 
-  return <div ref={divRef}></div>;
+  return <div ref={divRef} style={{ cursor: "none" }}></div>;
 }
