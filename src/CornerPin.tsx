@@ -144,15 +144,23 @@ export default function CornerPin(
     setTransform(m);
   }, [pins, height, width]);
 
-  // reset pins with space bar
+  // toggle the transform with space bar, reset it with shift+space
 
-  const { reset } = useKeyState({ reset: "space" });
+  const { apply, reset } = useKeyState({
+    apply: "space",
+    reset: "shift+space",
+  });
+
+  const [applyPins, setApplyPins] = useState(true);
 
   useEffect(() => {
     if (reset.pressed) {
       resetPins();
     }
-  }, [reset, resetPins]);
+    if (apply.pressed) {
+      setApplyPins((applyPins) => !applyPins);
+    }
+  }, [apply, reset, resetPins]);
 
   // enter full screen with F key
 
@@ -168,7 +176,7 @@ export default function CornerPin(
     <div ref={domElement}>
       <div
         style={{
-          transform: `matrix3d(${transform.join(",")})`,
+          transform: applyPins ? `matrix3d(${transform.join(",")})` : "",
           transformOrigin: "0 0",
           width: `${width}px`,
           height: `${height}px`,
