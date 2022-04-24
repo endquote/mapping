@@ -58,16 +58,21 @@ export default function CornerPin(
     reset: "shift+space",
   });
 
-  const [applyPins, setApplyPins] = useState(true);
+  const [applyPins, setApplyPins] = useLocalStorageState(
+    `${storageKey}:applyPins`,
+    { defaultValue: true }
+  );
 
   useEffect(() => {
-    if (reset.pressed) {
+    if (reset.down) {
       resetPins();
     }
-    if (apply.pressed) {
-      setApplyPins((applyPins) => !applyPins);
+    if (apply.down) {
+      setApplyPins((applyPins) => {
+        return !applyPins;
+      });
     }
-  }, [apply, reset, resetPins]);
+  }, [apply, reset, resetPins, setApplyPins]);
 
   // select a corner by pressing Q/W/S/A
 
@@ -119,16 +124,16 @@ export default function CornerPin(
         : Object.values(pins);
 
       for (const pin of targets) {
-        if (nudgeN.pressed) {
+        if (nudgeN.down) {
           pin.y -= 1;
         }
-        if (nudgeE.pressed) {
+        if (nudgeE.down) {
           pin.x += 1;
         }
-        if (nudgeS.pressed) {
+        if (nudgeS.down) {
           pin.y += 1;
         }
-        if (nudgeW.pressed) {
+        if (nudgeW.down) {
           pin.x -= 1;
         }
       }
@@ -170,7 +175,7 @@ export default function CornerPin(
   const { fullScreen } = useKeyState({ fullScreen: "F" });
 
   useEffect(() => {
-    if (fullScreen.pressed) {
+    if (fullScreen.down) {
       domElement.current.requestFullscreen({ navigationUI: "hide" });
     }
   }, [fullScreen]);
