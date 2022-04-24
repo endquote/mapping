@@ -21,7 +21,7 @@ export default function Editor(
   const sceneSize = useRef(new Vector(1920, 1080));
   const bgTexture = useRef(new Texture("/bg.jpg") as unknown as string);
 
-  // store the circles
+  // store the circles as arrays: [x, y, radius]
   const [pennies, setPennies, { removeItem: resetPennies }] =
     useLocalStorageState<number[][]>(`${storageKey}:circles`, {
       defaultValue: coords,
@@ -44,7 +44,7 @@ export default function Editor(
             parseFloat((mouse.y - scene.position.y).toFixed(2)),
             radius,
           ]);
-          setPennies([...pennies]);
+          // setPennies([...pennies]);
         } else {
           // remove circle on shift-click
           setPennies((pennies) => {
@@ -59,7 +59,7 @@ export default function Editor(
                 Two.Vector.distanceBetween(new Vector(a[0], a[1]), cursor) -
                 Two.Vector.distanceBetween(new Vector(b[0], b[1]), cursor)
             );
-            p.shift();
+            // p.shift();
             return p;
           });
         }
