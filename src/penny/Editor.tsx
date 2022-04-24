@@ -36,42 +36,84 @@ export default function Editor(
       onMove: ({ event }) => {
         setMouse(new Vector(event.offsetX, event.offsetY));
       },
-      // add a circle on click
       onClick: () => {
-        pennies.push([
-          Math.round((mouse.x - scene.position.x) * 10000) / 10000,
-          Math.round((mouse.y - scene.position.y) * 10000) / 10000,
-          radius,
-        ]);
-        setPennies([...pennies]);
+        if (!remove.pressed) {
+          // add a circle on click
+          pennies.push([
+            parseFloat((mouse.x - scene.position.x).toFixed(2)),
+            parseFloat((mouse.y - scene.position.y).toFixed(2)),
+            radius,
+          ]);
+          setPennies([...pennies]);
+        } else {
+          // remove circle on shift-click
+          setPennies((pennies) => {
+            const cursor = new Vector(
+              mouse.x - radii.current[0] * 2,
+              mouse.y - radii.current[0] * 2
+            );
+            const p = [...pennies];
+            // yes i know this is the slowest way to do it
+            p.sort(
+              (a, b) =>
+                Two.Vector.distanceBetween(new Vector(a[0], a[1]), cursor) -
+                Two.Vector.distanceBetween(new Vector(b[0], b[1]), cursor)
+            );
+            p.shift();
+            return p;
+          });
+        }
       },
     },
     { target: divRef }
   );
 
   // different circle sizes
-  const radii = useRef([43, 35, 22, 14]);
+  const radii = useRef([14, 22, 35, 43]);
   const [radius, setRadius] = useState(radii.current[0]);
 
   // set up keyboard handling
-  const { nextRadius, toggleBg, remove, reset } = useKeyState({
-    nextRadius: "R",
-    toggleBg: "B",
-    remove: "shift+D",
-    reset: "shift+O",
-  });
-
-  // R to go to the next radius
-  useEffect(() => {
-    if (!nextRadius.pressed) {
-      return;
-    }
-    setRadius((radius) => {
-      let i = radii.current.indexOf(radius);
-      i = i === radii.current.length - 1 ? 0 : i + 1;
-      return radii.current[i];
+  const { nextRadius, toggleBg, remove, reset, nudgeUp, nudgeDown } =
+    useKeyState({
+      nextRadius: "R",
+      nudgeUp: "T",
+      nudgeDown: "E",
+      toggleBg: "B",
+      remove: "shift",
+      reset: "shift+O",
     });
-  }, [nextRadius]);
+
+  useEffect(() => {
+    setRadius((radius) => {
+      // R to go to the next radius
+      if (nextRadius.pressed) {
+        const ri = radii.current;
+        const close = [...ri].sort(
+          (a, b) => Math.abs(a - radius) - Math.abs(b - radius)
+        )[0];
+        let i = ri.indexOf(close);
+        if (radius !== ri[i]) {
+          // jump to the closest one
+          return ri[i];
+        }
+        // jump to the next one
+        i = i === ri.length - 1 ? 0 : i + 1;
+        return ri[i];
+      }
+
+      // T to increase radius
+      if (nudgeUp.pressed) {
+        return radius + 1;
+      }
+
+      // E to decreate radius
+      if (nudgeDown.pressed) {
+        return radius - 1;
+      }
+
+      return radius;
+    });
+  }, [nextRadius, nudgeUp, nudgeDown]);
 
   // B to toggle the background
   useEffect(() => {
@@ -82,35 +124,13 @@ export default function Editor(
     bg.fill = bg.fill === "black" ? bgTexture.current : "black";
   }, [toggleBg, scene]);
 
-  // shift+D to delete the penny closest to the cursor
-  useEffect(() => {
-    if (!remove.pressed) {
-      return;
-    }
-    setPennies((pennies) => {
-      const cursor = new Vector(
-        mouse.x - radii.current[0] * 2,
-        mouse.y - radii.current[0] * 2
-      );
-      const p = [...pennies];
-      // yes i know this is the slowest way to do it
-      p.sort(
-        (a, b) =>
-          Two.Vector.distanceBetween(new Vector(a[0], a[1]), cursor) -
-          Two.Vector.distanceBetween(new Vector(b[0], b[1]), cursor)
-      );
-      p.shift();
-      return p;
-    });
-  }, [remove, mouse, setPennies]);
-
   // shift+O to reset to saved pennies
   useEffect(() => {
     if (!reset.pressed) {
       return;
     }
     resetPennies();
-  }, [reset, resetPennies]) ;
+  }, [reset, resetPennies]);
 
   // set up the scene
   useEffect(() => {
@@ -148,9 +168,9 @@ export default function Editor(
 
     // a circle cursor
     const cursor = new Circle(0, 0, 10);
-    cursor.stroke = "red";
-    cursor.linewidth = 1;
-    cursor.fill = "transparent";
+    cursor.stroke = "rgba(0,0,0,1)";
+    cursor.linewidth = 0.5;
+    cursor.fill = "rgba(255,0,0,.3)";
     cursor.opacity = 1;
     scene.add(cursor);
   }, [scene]);
@@ -158,7 +178,7 @@ export default function Editor(
   // track the mouse position with the cursor
   useEffect(() => {
     const cursor = scene.children[2] as Circle;
-    cursor.radius = radius;
+    cursor.radius = radius - cursor.linewidth / 2;
     cursor.position.x = mouse.x - scene.position.x;
     cursor.position.y = mouse.y - scene.position.y;
   }, [scene, mouse, radius]);
