@@ -21,7 +21,7 @@ export function useTwo(
     twoRef.current = new Two({
       fullscreen: true,
       autostart: true,
-      type: Two.Types.webgl,
+      type: Two.Types.svg,
     });
 
     const two = twoRef.current;
