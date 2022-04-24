@@ -51,6 +51,24 @@ export default function CornerPin(
     ]
   );
 
+  // toggle the transform with space bar, reset it with shift+space
+
+  const { apply, reset } = useKeyState({
+    apply: "space",
+    reset: "shift+space",
+  });
+
+  const [applyPins, setApplyPins] = useState(true);
+
+  useEffect(() => {
+    if (reset.pressed) {
+      resetPins();
+    }
+    if (apply.pressed) {
+      setApplyPins((applyPins) => !applyPins);
+    }
+  }, [apply, reset, resetPins]);
+
   // select a corner by pressing Q/W/S/A
 
   const { selectNW, selectNE, selectSE, selectSW } = useKeyState({
@@ -92,6 +110,9 @@ export default function CornerPin(
   );
 
   useEffect(() => {
+    if (!applyPins) {
+      return;
+    }
     setPins((pins) => {
       const targets = selectedCorner
         ? [pins[selectedCorner]]
@@ -114,7 +135,7 @@ export default function CornerPin(
 
       return pins;
     });
-  }, [nudgeE, nudgeN, nudgeS, nudgeW, selectedCorner, setPins]);
+  }, [applyPins, nudgeE, nudgeN, nudgeS, nudgeW, selectedCorner, setPins]);
 
   useEffect(() => {
     // prettier-ignore
@@ -143,24 +164,6 @@ export default function CornerPin(
 
     setTransform(m);
   }, [pins, height, width]);
-
-  // toggle the transform with space bar, reset it with shift+space
-
-  const { apply, reset } = useKeyState({
-    apply: "space",
-    reset: "shift+space",
-  });
-
-  const [applyPins, setApplyPins] = useState(true);
-
-  useEffect(() => {
-    if (reset.pressed) {
-      resetPins();
-    }
-    if (apply.pressed) {
-      setApplyPins((applyPins) => !applyPins);
-    }
-  }, [apply, reset, resetPins]);
 
   // enter full screen with F key
 
