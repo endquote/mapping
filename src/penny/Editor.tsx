@@ -49,8 +49,8 @@ export default function Editor(
           // remove circle on shift-click
           setPennies((pennies) => {
             const cursor = new Vector(
-              mouse.x - radii.current[0] * 2,
-              mouse.y - radii.current[0] * 2
+              mouse.x - scene.position.x,
+              mouse.y - scene.position.x
             );
             const p = [...pennies];
             // yes i know this is the slowest way to do it
@@ -145,7 +145,8 @@ export default function Editor(
     }
 
     // offset scene so that partial circles on the top and left can be hit
-    scene.position.x = scene.position.y = radii.current[0] * 2;
+    // const bigR = [...radii.current].sort().pop()!;
+    // scene.position.x = scene.position.y = bigR * 2;
 
     // background image
     const bg = new Rectangle(0, 0, width, height);
