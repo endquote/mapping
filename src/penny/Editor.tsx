@@ -116,13 +116,24 @@ export default function Editor(
   }, [nextRadius, nudgeUp, nudgeDown]);
 
   // B to toggle the background
+  const [showBg, setShowBg] = useLocalStorageState(`${storageKey}:showBg`, {
+    defaultValue: true,
+  });
   useEffect(() => {
-    if (!toggleBg.pressed) {
+    if (toggleBg.down) {
+      setShowBg((showBg) => {
+        return !showBg;
+      });
+    }
+  }, [toggleBg, setShowBg]);
+
+  useEffect(() => {
+    const bg = scene.children[0] as Rectangle;
+    if (!bg) {
       return;
     }
-    const bg = scene.children[0] as Rectangle;
-    bg.fill = bg.fill === "black" ? bgTexture.current : "black";
-  }, [toggleBg, scene]);
+    bg.fill = showBg ? bgTexture.current : "black";
+  }, [scene, showBg]);
 
   // shift+O to reset to saved pennies
   useEffect(() => {
