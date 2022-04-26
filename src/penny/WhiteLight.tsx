@@ -10,6 +10,12 @@ import useLocalStorageState from "use-local-storage-state";
 import { useTwo } from "../useTwo";
 import { coords } from "./coords";
 
+// filter partial pennies that are not adjacent to a cabinet
+const pennies = coords.filter(
+  ([x, y, r]) =>
+    !(y + r > 780 && (x - r < 0 || x + r > 1920)) && !(y + r > 1080)
+);
+
 export default function Editor(
   { storageKey }: { storageKey: string } = { storageKey: "penny" }
 ) {
@@ -20,10 +26,6 @@ export default function Editor(
   const sceneSize = useRef(new Vector(1920, 1080));
   const bgTexture = useRef(new Texture("/bg.jpg") as unknown as string);
 
-  // store the circles as arrays: [x, y, radius]
-  const [pennies] = useLocalStorageState<number[][]>(`${storageKey}:circles`, {
-    defaultValue: coords,
-  });
 
   // mouse location
   const [mouse, setMouse] = useState<Vector>(new Vector());
@@ -109,7 +111,7 @@ export default function Editor(
       circle.opacity = 0.6;
       pennyGroup.add(circle);
     }
-  }, [scene, pennies]);
+  }, [scene]);
 
-  return <div ref={divRef} style={{ cursor: "none" }}></div>;
+  return <div ref={divRef}></div>;
 }
