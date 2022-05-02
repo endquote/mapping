@@ -8,7 +8,7 @@ import { Rectangle } from "two.js/src/shapes/rectangle";
 import { Vector } from "two.js/src/vector";
 import { useKeyState } from "use-key-state";
 import useLocalStorageState from "use-local-storage-state";
-import { useTwo } from "../useTwo";
+import { useTwo } from "../hooks/useTwo";
 import { coords } from "./coords";
 
 export default function Editor(

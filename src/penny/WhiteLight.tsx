@@ -1,5 +1,6 @@
 import { useGesture } from "@use-gesture/react";
 import React, { useEffect, useRef, useState } from "react";
+import Two from "two.js";
 import { Texture } from "two.js/src/effects/texture";
 import { Group } from "two.js/src/group";
 import { Circle } from "two.js/src/shapes/circle";
@@ -7,14 +8,26 @@ import { Rectangle } from "two.js/src/shapes/rectangle";
 import { Vector } from "two.js/src/vector";
 import { useKeyState } from "use-key-state";
 import useLocalStorageState from "use-local-storage-state";
-import { useTwo } from "../useTwo";
+import { usePrevious } from "../hooks/usePrevious";
+import { useTwo } from "../hooks/useTwo";
 import { coords } from "./coords";
 
-// filter partial pennies that are not adjacent to a cabinet
-const pennies = coords.filter(
-  ([x, y, r]) =>
-    !(y + r > 780 && (x - r < 0 || x + r > 1920)) && !(y + r > 1080)
-);
+type Penny = { v: Vector; r: number; c: Circle };
+
+const pennies = coords
+  // filter partial pennies that are not adjacent to a cabinet
+  .filter(
+    ([x, y, r]) =>
+      !(y + r > 780 && (x - r < 0 || x + r > 1920)) && !(y + r > 1080)
+  )
+  // convert to an easier-to-work-with object
+  .map(([x, y, r]): Penny => {
+    const v = new Vector(x, y);
+    const c = new Circle();
+    c.position = v;
+    c.radius = r;
+    return { r, v, c };
+  });
 
 export default function Editor(
   { storageKey }: { storageKey: string } = { storageKey: "penny" }
@@ -25,7 +38,6 @@ export default function Editor(
   const [scene] = useTwo(divRef);
   const sceneSize = useRef(new Vector(1920, 1080));
   const bgTexture = useRef(new Texture("/bg.jpg") as unknown as string);
-
 
   // mouse location
   const [mouse, setMouse] = useState<Vector>(new Vector());
@@ -95,23 +107,33 @@ export default function Editor(
     // a group for holding the circles
     const pennyGroup = new Group();
     scene.add(pennyGroup);
+
+    for (const { c } of pennies) {
+      c.noStroke();
+      c.fill = "red";
+      c.opacity = 0.6;
+      pennyGroup.add(c);
+    }
   }, [scene]);
 
-  // draw the clicked circles
+  // highlight the hovered penny
+  const [hoverPenny, setHoverPenny] = useState<Penny>();
+  const prevHoverPenny = usePrevious(hoverPenny);
+
   useEffect(() => {
-    const pennyGroup = scene.children[1] as Group;
-    while (pennyGroup.children.length) {
-      pennyGroup.children[0].remove();
-    }
+    setHoverPenny(
+      pennies.find((p) => Two.Vector.distanceBetween(p.v, mouse) <= p.r)
+    );
+  }, [mouse]);
 
-    for (const coords of pennies) {
-      const circle = new Circle(coords[0], coords[1], coords[2]);
-      circle.noStroke();
-      circle.fill = "red";
-      circle.opacity = 0.6;
-      pennyGroup.add(circle);
+  useEffect(() => {
+    if (prevHoverPenny) {
+      prevHoverPenny.c.fill = "red";
     }
-  }, [scene]);
+    if (hoverPenny) {
+      hoverPenny.c.fill = "green";
+    }
+  }, [hoverPenny, prevHoverPenny]);
 
   return <div ref={divRef}></div>;
 }

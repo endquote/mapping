@@ -4,9 +4,9 @@ import { Group } from "two.js/src/group";
 
 // initialize two.js and return the root group and other useful info
 // [scene, frameCount, timeDelta, two] = useTwo(domElementRef)
-export function useTwo(
+export const useTwo = (
   divRef: MutableRefObject<HTMLDivElement>
-): [Group, number, number, Two] {
+): [Group, number, number, Two] => {
   const twoRef = useRef<Two>(null!);
   const sceneRef = useRef<Group>(new Group());
 
@@ -43,4 +43,4 @@ export function useTwo(
   }, [divRef, twoRef]);
 
   return [sceneRef.current, frame, timeDelta, twoRef.current];
-}
+};
