@@ -159,15 +159,13 @@ export default function Editor(
     const target = neighbor.v.clone();
     const inc = 10;
 
-    console.log(direction);
     while (
       target.x >= 0 &&
       target.y >= 0 &&
       target.x <= sceneSize.current.x &&
       target.y <= sceneSize.current.y
     ) {
-      target.add(inc * direction.x, inc + direction.y);
-      console.log(target);
+      target.add(inc * direction.x, inc * direction.y);
       const hit = pennies.find((p) => dist(p.v, target) < p.r);
       if (!hit || line.includes(hit)) {
         continue;
