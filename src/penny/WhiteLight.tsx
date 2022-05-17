@@ -1,9 +1,11 @@
 import { useGesture } from "@use-gesture/react";
 import React, { useEffect, useRef, useState } from "react";
 import Two from "two.js";
+import { Anchor } from "two.js/src/anchor";
 import { Texture } from "two.js/src/effects/texture";
 import { Group } from "two.js/src/group";
 import { Circle } from "two.js/src/shapes/circle";
+import { Line } from "two.js/src/shapes/line";
 import { Rectangle } from "two.js/src/shapes/rectangle";
 import { Vector } from "two.js/src/vector";
 import { useKeyState } from "use-key-state";
@@ -13,6 +15,8 @@ import { useTwo } from "../hooks/useTwo";
 import { coords } from "./coords";
 
 type Penny = { v: Vector; r: number; c: Circle };
+
+const dist = Two.Vector.distanceBetween;
 
 const pennies = coords
   // filter partial pennies that are not adjacent to a cabinet
@@ -38,6 +42,7 @@ export default function Editor(
   const [scene] = useTwo(divRef);
   const sceneSize = useRef(new Vector(1920, 1080));
   const bgTexture = useRef(new Texture("/bg.jpg") as unknown as string);
+  const debugLine = useRef(new Line());
 
   // mouse location
   const [mouse, setMouse] = useState<Vector>(new Vector());
@@ -114,26 +119,71 @@ export default function Editor(
       c.opacity = 0.6;
       pennyGroup.add(c);
     }
+
+    debugLine.current.stroke = "pink";
+    debugLine.current.linewidth = 2;
+    scene.add(debugLine.current);
   }, [scene]);
 
   // highlight the hovered penny
-  const [hoverPenny, setHoverPenny] = useState<Penny>();
-  const prevHoverPenny = usePrevious(hoverPenny);
+  const [hovered, setHovered] = useState<Penny>();
+  const prevHovered = usePrevious(hovered);
 
   useEffect(() => {
-    setHoverPenny(
-      pennies.find((p) => Two.Vector.distanceBetween(p.v, mouse) <= p.r)
-    );
+    setHovered(pennies.find((p) => dist(p.v, mouse) <= p.r));
   }, [mouse]);
 
   useEffect(() => {
-    if (prevHoverPenny) {
-      prevHoverPenny.c.fill = "red";
+    pennies.forEach((p) => {
+      p.c.fill = "red";
+    });
+
+    if (!hovered) {
+      return;
     }
-    if (hoverPenny) {
-      hoverPenny.c.fill = "green";
+
+    hovered.c.fill = "green";
+
+    const neighbors = pennies
+      .filter((p) => p != hovered)
+      .filter((p) => dist(p.v, hovered.v) < p.r + hovered.r + 5);
+
+    const neighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+
+    const line: Penny[] = [hovered, neighbor];
+
+    const direction = neighbor.v
+      .clone()
+      .sub(hovered.v.x, hovered.v.y)
+      .normalize();
+    const target = neighbor.v.clone();
+    const inc = 10;
+
+    console.log(direction);
+    while (
+      target.x >= 0 &&
+      target.y >= 0 &&
+      target.x <= sceneSize.current.x &&
+      target.y <= sceneSize.current.y
+    ) {
+      target.add(inc * direction.x, inc + direction.y);
+      console.log(target);
+      const hit = pennies.find((p) => dist(p.v, target) < p.r);
+      if (!hit || line.includes(hit)) {
+        continue;
+      }
+      line.push(hit);
     }
-  }, [hoverPenny, prevHoverPenny]);
+
+    line.forEach((p) => (p.c.fill = "green"));
+    neighbor.c.fill = "blue";
+
+    const dlv = debugLine.current.vertices as Anchor[];
+    dlv[0].x = hovered.v.x;
+    dlv[0].y = hovered.v.y;
+    dlv[1].x = target.x;
+    dlv[1].y = target.y;
+  }, [hovered]);
 
   return <div ref={divRef}></div>;
 }

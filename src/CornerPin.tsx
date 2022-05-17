@@ -25,7 +25,7 @@ export default function CornerPin(
 ) {
   const domElement = useRef<HTMLDivElement>(null!);
 
-  // pins represent where each corner of the image is nudged to
+  // pins represent where each corner of the image is nudged to!!!
   const [pins, setPins, { removeItem: resetPins }] = useLocalStorageState<
     Record<Corner, Point>
   >(`${storageKey}:pins`, {
