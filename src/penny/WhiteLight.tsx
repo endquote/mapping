@@ -11,6 +11,7 @@ import { Vector } from "two.js/src/vector";
 import { useKeyState } from "use-key-state";
 import useLocalStorageState from "use-local-storage-state";
 import { useTwo } from "../hooks/useTwo";
+import { seedRandom } from "../util/seedRandom";
 import { coords } from "./coords";
 
 type Penny = { v: Vector; r: number; c: Circle };
@@ -42,6 +43,7 @@ export default function Editor(
   const sceneSize = useRef(new Vector(1920, 1080));
   const bgTexture = useRef(new Texture("/bg.jpg") as unknown as string);
   const debugLine = useRef(new Line());
+  const edges = useRef<Penny[]>([]);
 
   const [click, setClick] = useState(0);
 
@@ -125,22 +127,28 @@ export default function Editor(
       p.c.fill = "red";
     });
 
-    const { x: w, y: h } = sceneSize.current;
     const dlv = debugLine.current.vertices as Anchor[];
-
-    //  find the pennies which overlap the edges of the scene
-    const edges = pennies.filter(
-      (p) =>
-        p.v.x - p.r < 0 || p.v.y - p.r < 0 || p.v.x + p.r > w || p.v.y + p.r > h
-    );
-
-    edges.forEach((p) => (p.c.fill = "purple"));
+    const { x: w, y: h } = sceneSize.current;
 
     let line: Penny[] = [];
 
     while (line.length < 10) {
+      // find the pennies which overlap the edges of the scene
+      if (!edges.current.length) {
+        edges.current = pennies.filter(
+          (p) =>
+            p.v.x - p.r < 0 ||
+            p.v.y - p.r < 0 ||
+            p.v.x + p.r > w ||
+            p.v.y + p.r > h
+        );
+      }
+
       // pick an edge at random to start from
-      const origin = edges[Math.floor(Math.random() * edges.length)];
+      const originIndex = Math.floor(seedRandom() * edges.current.length);
+      const origin = edges.current[originIndex];
+      edges.current.splice(originIndex, 1);
+
       dlv[0].x = dlv[1].x = origin.v.x;
       dlv[0].y = dlv[1].y = origin.v.y;
 
@@ -150,7 +158,7 @@ export default function Editor(
         .filter((p) => dist(p.v, origin.v) < p.r + origin.r + 5);
 
       // pick a random one to set the line direction
-      const neighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+      const neighbor = neighbors[Math.floor(seedRandom() * neighbors.length)];
 
       // determine the direction of the line as a normalized vector
       const direction = neighbor.v
