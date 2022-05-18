@@ -131,8 +131,9 @@ export default function Editor(
     const { x: w, y: h } = sceneSize.current;
 
     let line: Penny[] = [];
+    const minLine = 10;
 
-    while (line.length < 10) {
+    while (line.length < minLine) {
       // find the pennies which overlap the edges of the scene
       if (!edges.current.length) {
         edges.current = pennies.filter(
@@ -157,30 +158,43 @@ export default function Editor(
         .filter((p) => p != origin)
         .filter((p) => dist(p.v, origin.v) < p.r + origin.r + 5);
 
-      // pick a random one to set the line direction
-      const neighbor = neighbors[Math.floor(seedRandom() * neighbors.length)];
+      while (neighbors.length) {
+        // pick a random one to set the line direction
+        const neighborIndex = Math.floor(seedRandom() * neighbors.length);
+        const neighbor = neighbors[neighborIndex];
+        neighbors.splice(neighborIndex, 1);
 
-      // determine the direction of the line as a normalized vector
-      const direction = neighbor.v
-        .clone()
-        .sub(origin.v.x, origin.v.y)
-        .normalize();
+        // determine the direction of the line as a normalized vector
+        const direction = neighbor.v
+          .clone()
+          .sub(origin.v.x, origin.v.y)
+          .normalize();
 
-      line = [origin, neighbor];
+        line = [origin, neighbor];
 
-      const target = neighbor.v.clone();
-      const inc = 10;
+        const target = neighbor.v.clone();
+        const inc = 10;
 
-      // check at points in the direction of the line to find pennies that intersect
-      while (target.x >= 0 && target.y >= 0 && target.x <= w && target.y <= h) {
-        target.add(inc * direction.x, inc * direction.y);
-        const hit = pennies.find((p) => dist(p.v, target) < p.r);
-        if (!hit || line.includes(hit)) {
-          continue;
+        // check at points in the direction of the line to find pennies that intersect
+        while (
+          target.x >= 0 &&
+          target.y >= 0 &&
+          target.x <= w &&
+          target.y <= h
+        ) {
+          target.add(inc * direction.x, inc * direction.y);
+          const hit = pennies.find((p) => dist(p.v, target) < p.r);
+          if (!hit || line.includes(hit)) {
+            continue;
+          }
+          dlv[1].x = target.x;
+          dlv[1].y = target.y;
+          line.push(hit);
         }
-        dlv[1].x = target.x;
-        dlv[1].y = target.y;
-        line.push(hit);
+
+        if (line.length > minLine) {
+          break;
+        }
       }
     }
 
