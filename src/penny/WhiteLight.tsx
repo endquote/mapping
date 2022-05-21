@@ -1,4 +1,5 @@
 import { useGesture } from "@use-gesture/react";
+import gsap from "gsap";
 import React, { useEffect, useRef, useState } from "react";
 import Two from "two.js";
 import { Anchor } from "two.js/src/anchor";
@@ -186,7 +187,7 @@ export default function Editor(
   useEffect(() => {
     pennies.forEach((p) => {
       p.c.fill = "red";
-      p.c.opacity = 0;
+      p.c.opacity = 0.5;
     });
 
     const line = lines.current[click % lines.current.length];
@@ -205,7 +206,41 @@ export default function Editor(
 
     line.forEach((p, i) => {
       p.c.fill = "white";
-      p.c.opacity = 1 - i / line.length;
+      p.c.opacity = 1;
+    });
+
+    const inDurationRelativeToRadius = 0.8;
+    const outDurationRelativeToIn = 0.25;
+    const ease = "power2.out";
+
+    const maxRadius = [...line].sort((a, b) => a.r - b.r).pop()!.r;
+    const durations = line.map(
+      (p) => (p.c.radius / maxRadius) * inDurationRelativeToRadius
+    );
+
+    const tl = gsap.timeline();
+    line.forEach((p, i) => {
+      const position = i == 0 ? 0 : durations[i - 1] * 0.5;
+      tl.add(
+        gsap.from(p.c, {
+          radius: 0,
+          duration: durations[i],
+          ease,
+        }),
+        `-=${position}`
+      );
+    });
+    line.forEach((p, i) => {
+      const position =
+        i == 0 ? 0 : durations[i - 1] * outDurationRelativeToIn * 0.5;
+      tl.add(
+        gsap.to(p.c, {
+          radius: 0,
+          duration: durations[i] * outDurationRelativeToIn,
+          ease,
+        }),
+        `-=${position}`
+      );
     });
   }, [click]);
 
