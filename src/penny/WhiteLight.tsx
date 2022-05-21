@@ -43,7 +43,7 @@ export default function Editor(
   const sceneSize = useRef(new Vector(1920, 1080));
   const bgTexture = useRef(new Texture("/bg.jpg") as unknown as string);
   const debugLine = useRef(new Line());
-  const edges = useRef<Penny[]>([]);
+  const lines = useRef<Penny[][]>([]);
 
   const [click, setClick] = useState(0);
 
@@ -112,9 +112,70 @@ export default function Editor(
 
     for (const { c } of pennies) {
       c.noStroke();
-      c.fill = "red";
-      c.opacity = 0.6;
       pennyGroup.add(c);
+    }
+
+    const { x: w, y: h } = sceneSize.current;
+    const searchIncrement = 10;
+    const minLength = 10;
+
+    // find the pennies which overlap the edges of the scene
+    const edges = pennies.filter(
+      (p) =>
+        p.v.x - p.r < 0 || p.v.y - p.r < 0 || p.v.x + p.r > w || p.v.y + p.r > h
+    );
+
+    while (edges.length) {
+      // pick an edge at random to start from
+      const originIndex = Math.floor(seedRandom() * edges.length);
+      const origin = edges[originIndex];
+      edges.splice(originIndex, 1);
+
+      // find the pennies close to the origin
+      const neighbors = pennies
+        .filter((p) => p != origin)
+        .filter((p) => dist(p.v, origin.v) < p.r + origin.r + 5);
+
+      let line: Penny[] = [];
+
+      while (neighbors.length && line.length < minLength) {
+        // pick a random one to set the line direction
+        const neighborIndex = Math.floor(seedRandom() * neighbors.length);
+        const neighbor = neighbors[neighborIndex];
+        neighbors.splice(neighborIndex, 1);
+
+        // determine the direction of the line as a normalized vector
+        const direction = neighbor.v
+          .clone()
+          .sub(origin.v.x, origin.v.y)
+          .normalize();
+
+        line = [origin, neighbor];
+
+        const target = neighbor.v.clone();
+
+        // check at points in the direction of the line to find pennies that intersect
+        while (
+          target.x >= 0 &&
+          target.y >= 0 &&
+          target.x <= w &&
+          target.y <= h
+        ) {
+          target.add(
+            searchIncrement * direction.x,
+            searchIncrement * direction.y
+          );
+          const hit = pennies.find((p) => dist(p.v, target) < p.r);
+          if (!hit || line.includes(hit)) {
+            continue;
+          }
+          line.push(hit);
+        }
+      }
+
+      if (line.length >= minLength) {
+        lines.current.push(line);
+      }
     }
 
     debugLine.current.stroke = "pink";
@@ -125,66 +186,27 @@ export default function Editor(
   useEffect(() => {
     pennies.forEach((p) => {
       p.c.fill = "red";
+      p.c.opacity = 0;
     });
 
+    const line = lines.current[click % lines.current.length];
+    const [origin, neighbor] = line;
+
+    const direction = neighbor.v
+      .clone()
+      .sub(origin.v.x, origin.v.y)
+      .normalize();
+
     const dlv = debugLine.current.vertices as Anchor[];
-    const { x: w, y: h } = sceneSize.current;
+    dlv[0].x = origin.v.x;
+    dlv[0].y = origin.v.y;
+    dlv[1].x = origin.v.x + direction.x * 10000;
+    dlv[1].y = origin.v.y + direction.y * 10000;
 
-    let line: Penny[] = [];
-
-    while (line.length < 10) {
-      // find the pennies which overlap the edges of the scene
-      if (!edges.current.length) {
-        edges.current = pennies.filter(
-          (p) =>
-            p.v.x - p.r < 0 ||
-            p.v.y - p.r < 0 ||
-            p.v.x + p.r > w ||
-            p.v.y + p.r > h
-        );
-      }
-
-      // pick an edge at random to start from
-      const originIndex = Math.floor(seedRandom() * edges.current.length);
-      const origin = edges.current[originIndex];
-      edges.current.splice(originIndex, 1);
-
-      dlv[0].x = dlv[1].x = origin.v.x;
-      dlv[0].y = dlv[1].y = origin.v.y;
-
-      // find the pennies close to the origin
-      const neighbors = pennies
-        .filter((p) => p != origin)
-        .filter((p) => dist(p.v, origin.v) < p.r + origin.r + 5);
-
-      // pick a random one to set the line direction
-      const neighbor = neighbors[Math.floor(seedRandom() * neighbors.length)];
-
-      // determine the direction of the line as a normalized vector
-      const direction = neighbor.v
-        .clone()
-        .sub(origin.v.x, origin.v.y)
-        .normalize();
-
-      line = [origin, neighbor];
-
-      const target = neighbor.v.clone();
-      const inc = 10;
-
-      // check at points in the direction of the line to find pennies that intersect
-      while (target.x >= 0 && target.y >= 0 && target.x <= w && target.y <= h) {
-        target.add(inc * direction.x, inc * direction.y);
-        const hit = pennies.find((p) => dist(p.v, target) < p.r);
-        if (!hit || line.includes(hit)) {
-          continue;
-        }
-        dlv[1].x = target.x;
-        dlv[1].y = target.y;
-        line.push(hit);
-      }
-    }
-
-    line.forEach((p) => (p.c.fill = "green"));
+    line.forEach((p, i) => {
+      p.c.fill = "white";
+      p.c.opacity = 1 - i / line.length;
+    });
   }, [click]);
 
   return <div ref={divRef}></div>;
