@@ -14,11 +14,7 @@ import { useTwo } from "../hooks/useTwo";
 import { seedRandom } from "../util/seedRandom";
 import { coords } from "./coords";
 
-type Penny = {
-  v: Vector;
-  r: number;
-  c: Circle;
-};
+type Penny = { v: Vector; r: number; c: Circle };
 
 const dist = Two.Vector.distanceBetween;
 
@@ -40,7 +36,7 @@ const pennies = coords
     return { r, v, c };
   });
 
-export default function Editor(
+export default function WhiteLight(
   { storageKey }: { storageKey: string } = { storageKey: "penny" }
 ) {
   // initialize two.js
@@ -194,36 +190,53 @@ export default function Editor(
       return;
     }
 
-    for (const line of lines.current) {
-      const i = lines.current.indexOf(line);
-      const tl = gsap.timeline({ onStart: () => setCurrentLine(i) });
-      for (const p of line) {
-        tl.add(gsap.to(p.c, { radius: p.r, duration: 0.2 }), "-=.1");
-      }
-      for (const p of line) {
-        tl.add(gsap.to(p.c, { radius: 0, duration: 0.2 }), "-=.1");
-      }
-      timelines.current.push(tl);
-    }
+    const inDurationRelativeToRadius = 0.7;
+    const outDurationRelativeToIn = 0.4;
+    const overlapIn = 0.2;
+    const overlapOut = 0.05;
+    const ease = "power2.out";
 
-    const tl = gsap
+    const mainTl = gsap
       .timeline({ onComplete: () => console.log("complete") })
       .timeScale(1);
 
-    for (const line of timelines.current) {
-      tl.add(line); //, `-=${lines.current[timelines.current.indexOf(line)].length*.1}`);
+    let totalOut = 0;
+
+    for (const line of lines.current) {
+      const i = lines.current.indexOf(line);
+      const lineTl = gsap.timeline({ onStart: () => setCurrentLine(i) });
+
+      // the duration of the in/out animations should be relative to the radius
+      const maxRadius = [...line].sort((a, b) => a.r - b.r).pop()!.r;
+      const durations = line.map((p) => p.r / maxRadius);
+      const inDurations = durations.map((d) => d * inDurationRelativeToRadius);
+      const outDurations = inDurations.map((d) => d * outDurationRelativeToIn);
+
+      line.forEach((p, i) => {
+        lineTl.add(
+          gsap.to(p.c, { radius: p.r, ease, duration: inDurations[i] }),
+          `-=${overlapIn}`
+        );
+      });
+
+      line.forEach((p, i) => {
+        lineTl.add(
+          gsap.to(p.c, { radius: 0, ease, duration: outDurations[i] }),
+          `-=${overlapOut}`
+        );
+      });
+
+      timelines.current.push(lineTl);
+      mainTl.add(lineTl, `-=${totalOut}`);
+
+      // the next line comes in after the previous one is half gone
+      totalOut = outDurations.reduce((prev, curr) => prev + curr, 0);
+      totalOut -= overlapOut * (outDurations.length - 1);
+      totalOut /= 2;
     }
 
-    tl.play();
-    console.log(`total duration: ${tl.duration()}`);
-    // const inDurationRelativeToRadius = 0.8;
-    // const outDurationRelativeToIn = 0.25;
-    // const ease = "power2.out";
-
-    // const maxRadius = [...line].sort((a, b) => a.r - b.r).pop()!.r;
-    // const durations = line.map(
-    //   (p) => (p.c.radius / maxRadius) * inDurationRelativeToRadius
-    // );
+    mainTl.play();
+    console.log(`total duration: ${mainTl.duration()}`);
   }, [sceneInit]);
 
   // update the debug view
@@ -248,6 +261,8 @@ export default function Editor(
     dlv[0].y = origin.v.y;
     dlv[1].x = origin.v.x + direction.x * 10000;
     dlv[1].y = origin.v.y + direction.y * 10000;
+
+    debugLine.current.visible = false;
   }, [currentLine]);
 
   return <div ref={divRef}></div>;
