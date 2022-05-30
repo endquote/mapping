@@ -1,4 +1,3 @@
-import { useGesture } from "@use-gesture/react";
 import gsap from "gsap";
 import React, { useEffect, useRef, useState } from "react";
 import Two from "two.js";
@@ -15,7 +14,11 @@ import { useTwo } from "../hooks/useTwo";
 import { seedRandom } from "../util/seedRandom";
 import { coords } from "./coords";
 
-type Penny = { v: Vector; r: number; c: Circle };
+type Penny = {
+  v: Vector;
+  r: number;
+  c: Circle;
+};
 
 const dist = Two.Vector.distanceBetween;
 
@@ -30,35 +33,32 @@ const pennies = coords
     const v = new Vector(x, y);
     const c = new Circle();
     c.position = v;
-    c.radius = r;
+    c.radius = 0.001; // gsap doesn't like when it starts from 0
+    c.fill = "white";
+    c.opacity = 1;
+
     return { r, v, c };
   });
 
 export default function Editor(
   { storageKey }: { storageKey: string } = { storageKey: "penny" }
 ) {
-  const divRef = useRef<HTMLDivElement>(null!);
-
   // initialize two.js
+  const divRef = useRef<HTMLDivElement>(null!);
   const [scene] = useTwo(divRef);
+
   const sceneSize = useRef(new Vector(1920, 1080));
   const bgTexture = useRef(new Texture("/bg.jpg") as unknown as string);
   const debugLine = useRef(new Line());
+
   const lines = useRef<Penny[][]>([]);
+  const timelines = useRef<gsap.core.Timeline[]>([]);
 
-  const [click, setClick] = useState(0);
-
-  useGesture(
-    {
-      onClick: () => setClick((click) => click + 1),
-    },
-    { target: divRef }
-  );
+  const [currentLine, setCurrentLine] = useState(0);
+  const [sceneInit, setSceneInit] = useState(false);
 
   // set up keyboard handling
-  const { toggleBg } = useKeyState({
-    toggleBg: "B",
-  });
+  const { toggleBg } = useKeyState({ toggleBg: "B" });
 
   // B to toggle the background
   const [showBg, setShowBg] = useLocalStorageState(`${storageKey}:showBg`, {
@@ -126,6 +126,7 @@ export default function Editor(
         p.v.x - p.r < 0 || p.v.y - p.r < 0 || p.v.x + p.r > w || p.v.y + p.r > h
     );
 
+    // search for lines
     while (edges.length) {
       // pick an edge at random to start from
       const originIndex = Math.floor(seedRandom() * edges.length);
@@ -179,18 +180,62 @@ export default function Editor(
       }
     }
 
+    // a line that should intesect each penny in the line
     debugLine.current.stroke = "pink";
     debugLine.current.linewidth = 2;
     scene.add(debugLine.current);
+
+    setSceneInit(true);
   }, [scene]);
 
+  // set up and begin the animations
   useEffect(() => {
-    pennies.forEach((p) => {
-      p.c.fill = "red";
-      p.c.opacity = 0.5;
-    });
+    if (!sceneInit) {
+      return;
+    }
 
-    const line = lines.current[click % lines.current.length];
+    for (const line of lines.current) {
+      const i = lines.current.indexOf(line);
+      const tl = gsap.timeline({ onStart: () => setCurrentLine(i) });
+      for (const p of line) {
+        tl.add(gsap.to(p.c, { radius: p.r, duration: 0.2 }), "-=.1");
+      }
+      for (const p of line) {
+        tl.add(gsap.to(p.c, { radius: 0, duration: 0.2 }), "-=.1");
+      }
+      timelines.current.push(tl);
+    }
+
+    const tl = gsap
+      .timeline({ onComplete: () => console.log("complete") })
+      .timeScale(1);
+
+    for (const line of timelines.current) {
+      tl.add(line); //, `-=${lines.current[timelines.current.indexOf(line)].length*.1}`);
+    }
+
+    tl.play();
+    console.log(`total duration: ${tl.duration()}`);
+    // const inDurationRelativeToRadius = 0.8;
+    // const outDurationRelativeToIn = 0.25;
+    // const ease = "power2.out";
+
+    // const maxRadius = [...line].sort((a, b) => a.r - b.r).pop()!.r;
+    // const durations = line.map(
+    //   (p) => (p.c.radius / maxRadius) * inDurationRelativeToRadius
+    // );
+  }, [sceneInit]);
+
+  // update the debug view
+  useEffect(() => {
+    const line = lines.current[currentLine];
+    if (!line) {
+      return;
+    }
+
+    const timeline = timelines.current[currentLine];
+    const duration = timeline ? timeline.duration() : 0;
+    console.log(`${currentLine + 1}/${lines.current.length}, ${duration}`);
     const [origin, neighbor] = line;
 
     const direction = neighbor.v
@@ -203,46 +248,7 @@ export default function Editor(
     dlv[0].y = origin.v.y;
     dlv[1].x = origin.v.x + direction.x * 10000;
     dlv[1].y = origin.v.y + direction.y * 10000;
-
-    line.forEach((p, i) => {
-      p.c.fill = "white";
-      p.c.opacity = 1;
-    });
-
-    const inDurationRelativeToRadius = 0.8;
-    const outDurationRelativeToIn = 0.25;
-    const ease = "power2.out";
-
-    const maxRadius = [...line].sort((a, b) => a.r - b.r).pop()!.r;
-    const durations = line.map(
-      (p) => (p.c.radius / maxRadius) * inDurationRelativeToRadius
-    );
-
-    const tl = gsap.timeline();
-    line.forEach((p, i) => {
-      const position = i == 0 ? 0 : durations[i - 1] * 0.5;
-      tl.add(
-        gsap.from(p.c, {
-          radius: 0,
-          duration: durations[i],
-          ease,
-        }),
-        `-=${position}`
-      );
-    });
-    line.forEach((p, i) => {
-      const position =
-        i == 0 ? 0 : durations[i - 1] * outDurationRelativeToIn * 0.5;
-      tl.add(
-        gsap.to(p.c, {
-          radius: 0,
-          duration: durations[i] * outDurationRelativeToIn,
-          ease,
-        }),
-        `-=${position}`
-      );
-    });
-  }, [click]);
+  }, [currentLine]);
 
   return <div ref={divRef}></div>;
 }
