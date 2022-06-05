@@ -49,6 +49,7 @@ export default function WhiteLight(
 
   const lines = useRef<Penny[][]>([]);
   const timelines = useRef<gsap.core.Timeline[]>([]);
+  const mainTimeline = useRef<gsap.core.Timeline>();
 
   const [currentLine, setCurrentLine] = useState(0);
   const [sceneInit, setSceneInit] = useState(false);
@@ -197,7 +198,7 @@ export default function WhiteLight(
     const ease = "power2.out";
 
     const mainTl = gsap
-      .timeline({ onComplete: () => console.log("complete") })
+      .timeline({ onComplete: () => console.log("complete"), paused: true })
       .timeScale(1);
 
     let totalOut = 0;
@@ -235,7 +236,8 @@ export default function WhiteLight(
       totalOut /= 2;
     }
 
-    mainTl.play();
+    // mainTl.play();
+    mainTimeline.current = mainTl;
     console.log(`total duration: ${mainTl.duration()}`);
   }, [sceneInit]);
 
@@ -264,6 +266,24 @@ export default function WhiteLight(
 
     debugLine.current.visible = false;
   }, [currentLine]);
+
+  // play/pause with the P key
+  const { playPause } = useKeyState({
+    playPause: "P",
+  });
+
+  useEffect(() => {
+    if (!mainTimeline.current) {
+      return;
+    }
+    if (playPause.pressed) {
+      if (mainTimeline.current.isActive()) {
+        mainTimeline.current.pause();
+      } else {
+        mainTimeline.current.play();
+      }
+    }
+  }, [playPause]);
 
   return <div ref={divRef}></div>;
 }
