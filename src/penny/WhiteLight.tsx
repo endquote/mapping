@@ -1,5 +1,5 @@
-import { useGesture } from "@use-gesture/react";
-import React, { useEffect, useRef, useState } from "react";
+import gsap from "gsap";
+import { useEffect, useRef, useState } from "react";
 import Two from "two.js";
 import { Anchor } from "two.js/src/anchor";
 import { Texture } from "two.js/src/effects/texture";
@@ -29,35 +29,33 @@ const pennies = coords
     const v = new Vector(x, y);
     const c = new Circle();
     c.position = v;
-    c.radius = r;
+    c.radius = 0.001; // gsap doesn't like when it starts from 0
+    c.fill = "white";
+    c.opacity = 1;
+
     return { r, v, c };
   });
 
-export default function Editor(
+export default function WhiteLight(
   { storageKey }: { storageKey: string } = { storageKey: "penny" }
 ) {
-  const divRef = useRef<HTMLDivElement>(null!);
-
   // initialize two.js
+  const divRef = useRef<HTMLDivElement>(null!);
   const [scene] = useTwo(divRef);
+
   const sceneSize = useRef(new Vector(1920, 1080));
   const bgTexture = useRef(new Texture("/bg.jpg") as unknown as string);
   const debugLine = useRef(new Line());
-  const edges = useRef<Penny[]>([]);
 
-  const [click, setClick] = useState(0);
+  const lines = useRef<Penny[][]>([]);
+  const timelines = useRef<gsap.core.Timeline[]>([]);
+  const mainTimeline = useRef<gsap.core.Timeline>();
 
-  useGesture(
-    {
-      onClick: () => setClick((click) => click + 1),
-    },
-    { target: divRef }
-  );
+  const [currentLine, setCurrentLine] = useState(0);
+  const [sceneInit, setSceneInit] = useState(false);
 
   // set up keyboard handling
-  const { toggleBg } = useKeyState({
-    toggleBg: "B",
-  });
+  const { toggleBg } = useKeyState({ toggleBg: "B" });
 
   // B to toggle the background
   const [showBg, setShowBg] = useLocalStorageState(`${storageKey}:showBg`, {
@@ -112,53 +110,34 @@ export default function Editor(
 
     for (const { c } of pennies) {
       c.noStroke();
-      c.fill = "red";
-      c.opacity = 0.6;
       pennyGroup.add(c);
     }
 
-    debugLine.current.stroke = "pink";
-    debugLine.current.linewidth = 2;
-    scene.add(debugLine.current);
-  }, [scene]);
-
-  useEffect(() => {
-    pennies.forEach((p) => {
-      p.c.fill = "red";
-    });
-
-    const dlv = debugLine.current.vertices as Anchor[];
     const { x: w, y: h } = sceneSize.current;
+    const searchIncrement = 10;
+    const minLength = 10;
 
-    let line: Penny[] = [];
-    const minLine = 10;
+    // find the pennies which overlap the edges of the scene
+    const edges = pennies.filter(
+      (p) =>
+        p.v.x - p.r < 0 || p.v.y - p.r < 0 || p.v.x + p.r > w || p.v.y + p.r > h
+    );
 
-    while (line.length < minLine) {
-      // find the pennies which overlap the edges of the scene
-      if (!edges.current.length) {
-        edges.current = pennies.filter(
-          (p) =>
-            p.v.x - p.r < 0 ||
-            p.v.y - p.r < 0 ||
-            p.v.x + p.r > w ||
-            p.v.y + p.r > h
-        );
-      }
-
+    // search for lines
+    while (edges.length) {
       // pick an edge at random to start from
-      const originIndex = Math.floor(seedRandom() * edges.current.length);
-      const origin = edges.current[originIndex];
-      edges.current.splice(originIndex, 1);
-
-      dlv[0].x = dlv[1].x = origin.v.x;
-      dlv[0].y = dlv[1].y = origin.v.y;
+      const originIndex = Math.floor(seedRandom() * edges.length);
+      const origin = edges[originIndex];
+      edges.splice(originIndex, 1);
 
       // find the pennies close to the origin
       const neighbors = pennies
         .filter((p) => p != origin)
         .filter((p) => dist(p.v, origin.v) < p.r + origin.r + 5);
 
-      while (neighbors.length) {
+      let line: Penny[] = [];
+
+      while (neighbors.length && line.length < minLength) {
         // pick a random one to set the line direction
         const neighborIndex = Math.floor(seedRandom() * neighbors.length);
         const neighbor = neighbors[neighborIndex];
@@ -173,7 +152,6 @@ export default function Editor(
         line = [origin, neighbor];
 
         const target = neighbor.v.clone();
-        const inc = 10;
 
         // check at points in the direction of the line to find pennies that intersect
         while (
@@ -182,24 +160,130 @@ export default function Editor(
           target.x <= w &&
           target.y <= h
         ) {
-          target.add(inc * direction.x, inc * direction.y);
+          target.add(
+            searchIncrement * direction.x,
+            searchIncrement * direction.y
+          );
           const hit = pennies.find((p) => dist(p.v, target) < p.r);
           if (!hit || line.includes(hit)) {
             continue;
           }
-          dlv[1].x = target.x;
-          dlv[1].y = target.y;
           line.push(hit);
         }
+      }
 
-        if (line.length > minLine) {
-          break;
-        }
+      if (line.length >= minLength) {
+        lines.current.push(line);
       }
     }
 
-    line.forEach((p) => (p.c.fill = "green"));
-  }, [click]);
+    // a line that should intesect each penny in the line
+    debugLine.current.stroke = "pink";
+    debugLine.current.linewidth = 2;
+    scene.add(debugLine.current);
+
+    setSceneInit(true);
+  }, [scene]);
+
+  // set up and begin the animations
+  useEffect(() => {
+    if (!sceneInit) {
+      return;
+    }
+
+    const inDurationRelativeToRadius = 0.7;
+    const outDurationRelativeToIn = 0.4;
+    const overlapIn = 0.2;
+    const overlapOut = 0.05;
+    const ease = "power2.out";
+
+    const mainTl = gsap
+      .timeline({ onComplete: () => console.log("complete"), paused: true })
+      .timeScale(1);
+
+    let totalOut = 0;
+
+    for (const line of lines.current) {
+      const i = lines.current.indexOf(line);
+      const lineTl = gsap.timeline({ onStart: () => setCurrentLine(i) });
+
+      // the duration of the in/out animations should be relative to the radius
+      const maxRadius = [...line].sort((a, b) => a.r - b.r).pop()!.r;
+      const durations = line.map((p) => p.r / maxRadius);
+      const inDurations = durations.map((d) => d * inDurationRelativeToRadius);
+      const outDurations = inDurations.map((d) => d * outDurationRelativeToIn);
+
+      line.forEach((p, i) => {
+        lineTl.add(
+          gsap.to(p.c, { radius: p.r, ease, duration: inDurations[i] }),
+          `-=${overlapIn}`
+        );
+      });
+
+      line.forEach((p, i) => {
+        lineTl.add(
+          gsap.to(p.c, { radius: 0, ease, duration: outDurations[i] }),
+          `-=${overlapOut}`
+        );
+      });
+
+      timelines.current.push(lineTl);
+      mainTl.add(lineTl, `-=${totalOut}`);
+
+      // the next line comes in after the previous one is half gone
+      totalOut = outDurations.reduce((prev, curr) => prev + curr, 0);
+      totalOut -= overlapOut * (outDurations.length - 1);
+      totalOut /= 2;
+    }
+
+    // mainTl.play();
+    mainTimeline.current = mainTl;
+    console.log(`total duration: ${mainTl.duration()}`);
+  }, [sceneInit]);
+
+  // update the debug view
+  useEffect(() => {
+    const line = lines.current[currentLine];
+    if (!line) {
+      return;
+    }
+
+    const timeline = timelines.current[currentLine];
+    const duration = timeline ? timeline.duration() : 0;
+    console.log(`${currentLine + 1}/${lines.current.length}, ${duration}`);
+    const [origin, neighbor] = line;
+
+    const direction = neighbor.v
+      .clone()
+      .sub(origin.v.x, origin.v.y)
+      .normalize();
+
+    const dlv = debugLine.current.vertices as Anchor[];
+    dlv[0].x = origin.v.x;
+    dlv[0].y = origin.v.y;
+    dlv[1].x = origin.v.x + direction.x * 10000;
+    dlv[1].y = origin.v.y + direction.y * 10000;
+
+    debugLine.current.visible = false;
+  }, [currentLine]);
+
+  // play/pause with the P key
+  const { playPause } = useKeyState({
+    playPause: "P",
+  });
+
+  useEffect(() => {
+    if (!mainTimeline.current) {
+      return;
+    }
+    if (playPause.pressed) {
+      if (mainTimeline.current.isActive()) {
+        mainTimeline.current.pause();
+      } else {
+        mainTimeline.current.play();
+      }
+    }
+  }, [playPause]);
 
   return <div ref={divRef}></div>;
 }
