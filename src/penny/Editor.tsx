@@ -1,5 +1,5 @@
 import { useGesture } from "@use-gesture/react";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Two from "two.js";
 import { Texture } from "two.js/src/effects/texture";
 import { Group } from "two.js/src/group";
@@ -19,7 +19,7 @@ export default function Editor(
   // initialize two.js
   const [scene] = useTwo(divRef);
   const sceneSize = useRef(new Vector(1920, 1080));
-  const bgTexture = useRef(new Texture("/bg.jpg") as unknown as string);
+  const bgTexture = useRef(new Texture("/pennyround.jpg") as unknown as string);
 
   // store the circles as arrays: [x, y, radius]
   const [pennies, setPennies, { removeItem: resetPennies }] =

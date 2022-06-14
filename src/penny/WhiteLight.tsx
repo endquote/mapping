@@ -1,5 +1,5 @@
 import gsap from "gsap";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Two from "two.js";
 import { Anchor } from "two.js/src/anchor";
 import { Texture } from "two.js/src/effects/texture";
@@ -44,7 +44,7 @@ export default function WhiteLight(
   const [scene] = useTwo(divRef);
 
   const sceneSize = useRef(new Vector(1920, 1080));
-  const bgTexture = useRef(new Texture("/bg.jpg") as unknown as string);
+  const bgTexture = useRef(new Texture("/pennyround.jpg") as unknown as string);
   const debugLine = useRef(new Line());
 
   const lines = useRef<Penny[][]>([]);
