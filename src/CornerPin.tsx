@@ -1,5 +1,5 @@
 import PerspT from "perspective-transform";
-import React, { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { useKeyState } from "use-key-state";
 import useLocalStorageState from "use-local-storage-state";
 
